@@ -19,7 +19,7 @@ nb_cities = len(population)
 trav = [[0.001]*nb_cities]*nb_cities #probability for an individual to travel from city n to city m
 
 def multi_cities_SIS(infected, t):
-    d_infected, susceptible = [0]*nb_cities, [0]*nb_cities
+    d_infected, susceptible = [[0]*nb_cities]*2
     for n in range(nb_cities):
         susceptible[n] = population[n] - infected[n]
         d_infected[n] = (beta*susceptible[n]*infected[n])/(population[n]) - gamma*infected[n]
