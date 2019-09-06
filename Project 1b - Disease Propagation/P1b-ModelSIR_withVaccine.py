@@ -3,6 +3,12 @@ import math
 import numpy as np
 import scipy.integrate
 
+'''
+STATUS : Usable, but still requires some tweaking
+TODO : see TODO comments in code
+USAGE : set parameters in the following lines and run the script
+'''
+
 #----------------PARAMETERS----------------
 #disease parameters :
 #TODO : base those on real litterature and not random estimations
