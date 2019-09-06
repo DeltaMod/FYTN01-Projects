@@ -43,27 +43,34 @@ import matplotlib.pyplot as plt
 from random import randint
 
 cities = 3
-beta      = 0.5
+
+
+alpha = 0.1 # recovery probability  (sets 'Recovered')
+beta  = 0.7 # infection probability (sets 'Infected' )
+gamma = 0.1 # vaccine probability   (sets 'Recovered')
 
 
 
 class city(object):
-    def __init__(self,N,I,comN):
-        self.I   = I
-        self.N   = N
-        self.S   = N-I
-        self.comN = comN #Total Number of Commuters FROM the city self.comN[n] is transit from city self to city n 
-        self.comI = []   #      Number of infected FROM the city self.comN[n] is transit from city self to city n
-        self.comS = []
+    def __init__(self,N,I,R,comN):
+        self.N    = []; self.N.append(N)           # Total Population
+        self.I    = []; self.I.append(I)           # Total Infected
+        self.R    = []; self.R.append(R)           # Total Recovered 
+        self.S    = []; self.S.append(N-I-R)       # Total Susceptible
+        self.t    = []; self.t.append(0)           # Time elapsed
+        self.n    = []; self.n.append(len(self.N)-1) #
+        self.comN = []; self.comN.append(comN)     # Number of Commuters   FROM city self.comN[n] commuting to city m 
+        self.comI = []                             # Number of Infected    FROM city self.comN[n] commuting to city m
+        self.comS = []                             # Number of Susceptible FROM city self.comN[n] commuting to city m   
         if isinstance(comN,int):
-            self.comI = I/(N)*comN
-            self.comS = comN-self.comI
+            self.comI.append(I/(N)*comN)
+            self.comS.append(comN-self.comI)
         if isinstance(comN,list):
-            for var in range(len(comN)):
-                self.comI.append((I/N)*comN[var])
-                self.comS.append(comN[var]-self.comI[var])
+            self.comI.append([(I/N)*comN[var] for var in range(cities)])
+            self.comS.append([comN[var]-self.comI[self.n[-1]][var] for var in range(cities)])
+    #class __add__(self,dI,dS,dR)
 
-# We initialise the cities, and from this can calculate the number of commuters 
+# - We initialise the cities, and from this can calculate the number of commuters 
 # - We're just going to assume that 10% of each population commutes, and they commute based upon the ratio of the population of each city - so C[0]->C[1] = (C[0].N/10) * C[1].N/(C[0].N+C[1].N+C[2].N) 
 # - When making the real model, we will of course find real values, but for now this will suffice :) 
 Pop = []
@@ -80,10 +87,9 @@ for n in range(cities):
             Comm[n][n] = Comm[n][n] - Comm[n][var]
 
 #Now we generalise all cities into a single dictionary command, callable by C[index].classobjects 
-C = {n:city(Pop[n],10,Comm[n]) for n in range(cities)}
+C = {n:city(Pop[n],10,0,Comm[n]) for n in range(cities)}
 
 
-Temp1 = []
 dI    = []
 #ICS is "infected city state", and will store [t, I]
 ICS   = []
@@ -91,9 +97,9 @@ ICS   = []
 
 for t in range(100):
     dI.append([beta*C[n].I*C[n].S/C[n].N + sum([C[var].comN[n] for var in range(cities)]) - C[n].comN[n] for n in range(cities)])
-     for var in range(cities):
+    for var in range(cities):
         ICS
-        City[var] = city(C[var].N,  C[var].I, [C[var].comN[n] for n in range(cities)])
+        City[var] = city(C[var].N,  C[var].I, C[var].R [C[var].comN[n] for n in range(cities)])
         
 print(str(t))
         

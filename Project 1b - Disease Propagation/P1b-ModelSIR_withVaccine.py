@@ -13,24 +13,24 @@ USAGE : set parameters in the following lines and run the script
 #disease parameters :
 #TODO : base those on real litterature and not random estimations
 alpha = 0.1
-beta = 0.7
+beta  = 0.7
 gamma = 0.1
 
 #population parameters
 #TODO : find some real cities to work from
 # Note : the following three lists MUST have the same lenght (the number of cities)
-cities_names = ['Onetown', 'Twoburg', 'Threeville', 'Fourstad']
+cities_names  = ['Onetown', 'Twoburg', 'Threeville', 'Fourstad']
 susceptible_0 = [1000, 20, 300, 700] #initial susceptible ppl (population)
-infected_0 = [100, 0, 0, 0] #initial infected ppl
+infected_0    = [100, 0, 0, 0]       #initial infected ppl
 
 #integration parameter
-t= np.linspace(0,50,300) #integration range : start, end, number of points
+t = np.linspace(0,50,300) #integration range : start, end, number of points
 
 #------------------------------------------
 
-nb_cities = len(susceptible_0) #extract the number of cities from lenght of the list
-recovered_0 = [0]*nb_cities #at first, no recovered ppl
-state_0 = susceptible_0 + infected_0 + recovered_0 #pack the lists in one long list
+nb_cities   = len(susceptible_0)                       #extract the number of cities from lenght of the list
+recovered_0 = [0]*nb_cities                            #at first, no recovered ppl
+state_0     = susceptible_0 + infected_0 + recovered_0 #pack the lists in one long list
 
 w = [[0.01]*nb_cities]*nb_cities #probality for someone to go from one city to another.
 # TODO : make it dependent on the size of the origin and destination cities, also, make sure total flow is null for each city
@@ -62,8 +62,8 @@ def SIR(state, t):
 
     for n in range(nb_cities):
         d_suscept[n] = -(beta*susceptible[n]*infected[n])/(susceptible[n]+infected[n]+recovered[n]) - gamma*susceptible[n] #SIR model for city n
-        d_infect[n] = (beta*susceptible[n]*infected[n])/(susceptible[n]+infected[n]+recovered[n]) - alpha*infected[n]#SIR model for city n
-        d_recov[n] = gamma*susceptible[n] + alpha*infected[n]#SIR model for city n
+        d_infect[n]  =  (beta*susceptible[n]*infected[n])/(susceptible[n]+infected[n]+recovered[n]) - alpha*infected[n]#SIR model for city n
+        d_recov[n]   =  gamma*susceptible[n] + alpha*infected[n]#SIR model for city n
 
         for m in range(nb_cities):#adding the people coming and going from/to other cities :
             if m != n:
