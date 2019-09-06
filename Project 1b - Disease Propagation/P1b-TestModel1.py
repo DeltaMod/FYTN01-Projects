@@ -30,7 +30,7 @@ We can also include a "recovery" quotient, whereby a number "g" determines the r
      
 The differential equation that we will solve per city is:
     
-    dSn/dt = B(\sum^M_m=1{Smn})(\sum^M_m=1{Imn})/(\sum^M_m=1{Nmn}) + g(\sum^M_m=1{Imn}) 
+    dSn/dt = beta(\sum^M_m=1{Smn})(\sum^M_m=1{Imn})/(\sum^M_m=1{Nmn}) + g(\sum^M_m=1{Imn}) 
 
 """
 import numpy as np 
@@ -43,7 +43,7 @@ import matplotlib.pyplot as plt
 from random import randint
 
 cities = 3
-B      = 0.5
+beta      = 0.5
 
 
 
@@ -90,7 +90,7 @@ ICS   = []
 #We do not need to make SCS, since C[index] = N - ICS, but we will store it later 
 
 for t in range(100):
-    dI.append([B*C[n].I*C[n].S/C[n].N + sum([C[var].comN[n] for var in range(cities)]) - C[n].comN[n] for n in range(cities)])
+    dI.append([beta*C[n].I*C[n].S/C[n].N + sum([C[var].comN[n] for var in range(cities)]) - C[n].comN[n] for n in range(cities)])
      for var in range(cities):
         ICS
         City[var] = city(C[var].N,  C[var].I, [C[var].comN[n] for n in range(cities)])
@@ -98,7 +98,7 @@ for t in range(100):
 print(str(t))
         
 """  
-    dI1 = B*(C[0].I-C[0].comI[1]-C[0].comI[2]+C[1].comI[0]+C[2].comI[0])*(C[0].S-C[0].comS[1]-C[0].comS[2]+C[1].comS[0]+C[2].comS[0])/(C[0].comN[0]+C[1].comN[0]+C[2].comN[0]) 
+    dI1 = beta*(C[0].I-C[0].comI[1]-C[0].comI[2]+C[1].comI[0]+C[2].comI[0])*(C[0].S-C[0].comS[1]-C[0].comS[2]+C[1].comS[0]+C[2].comS[0])/(C[0].comN[0]+C[1].comN[0]+C[2].comN[0]) 
     rat = dI1/(C[0].comN[0]+C[1].comN[0]+C[2].comN[0])
     C[0].I = C[0].I+C[0].N*rat; C[1].I = C[1].I+C[1].comN[0]*rat; C[2].I = C[2].I+C[2].comN[0]*rat;
     for var in range(cities):
