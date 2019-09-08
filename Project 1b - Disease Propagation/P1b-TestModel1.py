@@ -43,15 +43,16 @@ import math
 import matplotlib.pyplot as plt
 from random import randint
 
-cities     = 3
+cities     = 4
 
 citymoniker = ['stad','burg','ville','town','thorp'] 
 citynames   = [str(n)+citymoniker[randint(1,len(citymoniker)-1)] for n in range(cities)]
 
 
-alpha = 0.1 # recovery probability  (sets 'Recovered')
-beta  = 0.7 # infection probability (sets 'Infected' )
-gamma = 0.1 # vaccine probability   (sets 'Recovered')
+alpha = 0.001                                        # recovery probability  (sets 'Recovered')
+beta  = 0.01                                         # infection probability (sets 'Infected' )
+gamma = [randint(0,5)/100 for n in range(cities)]   # vaccine probability   (sets 'Recovered')
+theta = 0.001                                       # death probability     (removes from N )
 
 
 
@@ -65,6 +66,7 @@ class city(object):
         self.S    = []; self.S.append(N-I-R)        # Total Susceptible
         self.t    = []; self.t.append(0)            # Time elapsed
         self.n    = []; self.n.append(len(self.N)-1)#
+        self.D    = []; self.D.append(0)            # Total Dead
         
         # We set up the number of commuters: Data access is self[n].com{N/S/I/R}[m][t] -> from city n, to city m at time t (where n > m is how many "commute to self")
         self.comN = []; self.comN.append(comN)      # Number of Commuters   FROM city self[n] commuting to city m 
@@ -73,6 +75,7 @@ class city(object):
         self.comR = []                              # Number of Recovered   FROM city self[n] commuting to city m 
         
         # Initialise the delta terms - the values for n = 0 are set in dcalc, when calculating the first set of changed values
+        self.dN   = [] 
         self.dS   = []
         self.dI   = []
         self.dR   = []
@@ -81,13 +84,14 @@ class city(object):
         self.name = []
         if isinstance(comN,int):
             self.comI.append(I/(N)*comN)
-            self.comS.append(comN-self.comI)
+            self.comS.append(self.S/N*comN)
             self.comR.append(self.comN - (self.comI+self.comS))
         if isinstance(comN,list):
             self.comI.append([(I/N)*comN[var]                  for var in range(cities)])
             self.comS.append([((N-I-R)/N)*comN[var]            for var in range(cities)])
-            self.comR.append([((N-self.S[-1]-I)/N)*comN[var]   for var in range(cities)])
-    def dcalc(self,dS,dI,dR):
+            self.comR.append([(R/N)*comN[var]   for var in range(cities)])
+    def dcalc(self,dS,dI,dR,dN):
+        self.dN.append(dN)
         self.dS.append(dS)
         self.dI.append(dI)
         self.dR.append(dR)
@@ -96,7 +100,8 @@ class city(object):
         self.S.append(self.S[-1] + dS )
         self.I.append(self.I[-1] + dI )
         self.R.append(self.R[-1] + dR )
-        self.N.append(self.N[-1]      )
+        self.N.append(self.N[-1] + dN )
+        self.D.append(self.N[0] - self.N[-1])
         self.comN.append(self.comN[-1])  # If we ever do mortality, this variable will need to be changed proportionally to dN
         self.comI.append([(self.I[-1]/self.N[-1]) * self.comN[self.n[-1]][var] for var in range(cities)])
         self.comS.append([(self.S[-1]/self.N[-1]) * self.comN[self.n[-1]][var] for var in range(cities)])
@@ -115,31 +120,36 @@ class city(object):
 
 Pop = []
 for n in range(cities):
-    Pop.append( randint(int(np.exp(15-1-n)),int(np.exp(15-n))))
-# We then rationalise the number of commuters to each city
+    Pop.append( randint(int(np.exp(15-1-n/(cities/2))),int(np.exp(15-n/(cities/2)))))
+# We then rationalise the ratio of commuters to each city
 Comm = []
 for n in range(cities):
-    Comm.append([(Pop[n]/10) * Pop[var]/(sum(Pop)) for var in range(cities)])
+    Comm.append([(randint(0,5)/100) * Pop[var]/(sum(Pop)) for var in range(cities)])
+    
     #Then, we find how many people stay in the city - this is just so that our sum later can be sum(all commuters) - (staying) so we only consider travellers
-    Comm[n][n] = Pop[n]
-    for var in range(len(Pop)):
-        if var !=n:
-            Comm[n][n] = Comm[n][n] - Comm[n][var]
+    Comm[n][n] = 1 - sum( Comm[n][:])+Comm[n][n]
+    #for var in range(len(Pop)):
+     #   if var !=n:
+      #      Comm[n][n] = Comm[n][n] - Comm[n][var]
+            
+# Now, we make random percentages of each city be infected
+InitI    = [randint(0,70) for n in range(cities)]
+
 
 #Now we generalise all cities into a single dictionary command, callable by C[index].classobjects 
-C = {n:city(Pop[n],Pop[n]/10,0,Comm[n]) for n in range(cities)}
+C = {n:city(Pop[n],Pop[n]*InitI[n]/100,0,Comm[n]) for n in range(cities)}
 #And make some fun names for them to have
 for n in range(cities):
     C[n].name.append(citynames[n])
 #We do not need to make SCS, since C[index] = N - ICS, but we will store it later 
 
-for t in range(100):
+for t in range(1000):
     for n in range(cities):
-        dS = -beta*C[n].I[t]*C[n].S[t]/C[n].N[t] - gamma*C[n].S[t] + sum([C[var].comS[t][n] - C[n].comS[t][var] for var in range(cities)]) 
-        dI =  beta*C[n].I[t]*C[n].S[t]/C[n].N[t] - alpha*C[n].I[t] + sum([C[var].comI[t][n] - C[n].comI[t][var] for var in range(cities)]) #Here, we're calculating sum(Call(+self)->all - Cself->all(+self)) - which should be the same as sum(excluding self)
-        dR =  gamma*C[n].S[t] + alpha*C[n].I[t]  +                   sum([C[var].comR[t][n] - C[n].comR[t][var] for var in range(cities)])
-        C[n].dcalc(dS,dI,dR)
-print(str(t))
+        dS = -beta     * C[n].I[t]*C[n].S[t]/C[n].N[t] - gamma[n]*C[n].S[t]                  + sum([C[var].S[t]*C[var].comS[t][n] - C[n].S[t]*C[n].comS[t][var] for var in range(cities)]) 
+        dI =  beta     * C[n].I[t]*C[n].S[t]/C[n].N[t] - alpha*C[n].I[t] - theta*C[n].I[t]   + sum([C[var].I[t]*C[var].comI[t][n] - C[n].I[t]*C[n].comI[t][var] for var in range(cities)]) #Here, we're calculating sum(Call(+self)->all - Cself->all(+self)) - which should be the same as sum(excluding self)
+        dR =  gamma[n] * C[n].S[t] + alpha*C[n].I[t]                                         + sum([C[var].R[t]*C[var].comR[t][n] - C[n].R[t]*C[n].comR[t][var] for var in range(cities)])
+        dN = -theta    * C[n].I[t]
+        C[n].dcalc(dS,dI,dR,dN)
 
 
 figsize = (10, 8)
@@ -149,9 +159,13 @@ fig1, axs = plt.subplots(rows, cols, figsize=figsize, constrained_layout=True)
 axs = axs.flatten()
 for n in range(cities):
     axs[n].plot(C[n].t, C[n].S, label='Susceptible in '       +C[n].name[0], color='red')
+    axs[n].plot(C[n].t, C[n].N, label='Alive in'              +C[n].name[0], color='orange')
     axs[n].plot(C[n].t, C[n].I, label='Infected in '          +C[n].name[0], color='blue')
     axs[n].plot(C[n].t, C[n].R, label='Recovered in '         +C[n].name[0], color='green')
+    axs[n].plot(C[n].t, C[n].D, label='Dead in '              +C[n].name[0], color='grey')
+    axs[n].plot(C[n].t[1:], C[n].dR, label='dR'              +C[n].name[0], color='black')
     axs[n].set_title(                 'Disease-spreading in ' +C[n].name[0])
+    #axs[n].plot(C[n].t, list(list(zip(*C[0].comR))[0]), label='Commuting to '       +C[n].name[0], color='black')
     axs[n].legend()
 plt.show()
 
