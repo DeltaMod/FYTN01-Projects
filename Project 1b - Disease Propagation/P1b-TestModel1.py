@@ -49,10 +49,10 @@ citymoniker = ['stad','burg','ville','town','thorp']
 citynames   = [str(n)+citymoniker[randint(1,len(citymoniker)-1)] for n in range(cities)]
 
 
-alpha = 0.001                                        # recovery probability  (sets 'Recovered')
-beta  = 0.01                                         # infection probability (sets 'Infected' )
-gamma = [randint(0,5)/100 for n in range(cities)]   # vaccine probability   (sets 'Recovered')
-theta = 0.001                                       # death probability     (removes from N )
+alpha = 0.01                                         # recovery probability  (sets 'Recovered')
+beta  = 0.01                                      # infection probability (sets 'Infected' )
+gamma = [randint(0,0)/100 for n in range(cities)]   # vaccine probability   (sets 'Recovered')
+theta = 0.01                                        # death probability     (removes from N )
 
 
 
@@ -143,14 +143,13 @@ for n in range(cities):
     C[n].name.append(citynames[n])
 #We do not need to make SCS, since C[index] = N - ICS, but we will store it later 
 
-for t in range(1000):
+for t in range(10000):
     for n in range(cities):
-        dS = -beta     * C[n].I[t]*C[n].S[t]/C[n].N[t] - gamma[n]*C[n].S[t]                  + sum([C[var].S[t]*C[var].comS[t][n] - C[n].S[t]*C[n].comS[t][var] for var in range(cities)]) 
-        dI =  beta     * C[n].I[t]*C[n].S[t]/C[n].N[t] - alpha*C[n].I[t] - theta*C[n].I[t]   + sum([C[var].I[t]*C[var].comI[t][n] - C[n].I[t]*C[n].comI[t][var] for var in range(cities)]) #Here, we're calculating sum(Call(+self)->all - Cself->all(+self)) - which should be the same as sum(excluding self)
-        dR =  gamma[n] * C[n].S[t] + alpha*C[n].I[t]                                         + sum([C[var].R[t]*C[var].comR[t][n] - C[n].R[t]*C[n].comR[t][var] for var in range(cities)])
-        dN = -theta    * C[n].I[t]
+        dS = -beta     * C[n].I[t]*C[n].S[t]/C[n].N[t] - gamma[n]*C[n].S[t]  + sum([C[var].S[t]*C[var].comS[t][n] - C[n].S[t]*C[n].comS[t][var] for var in range(cities)]) 
+        dI =  beta     * C[n].I[t]*C[n].S[t]/C[n].N[t] - alpha*C[n].I[t] +     + sum([C[var].I[t]*C[var].comI[t][n] - C[n].I[t]*C[n].comI[t][var] for var in range(cities)]) #Here, we're calculating sum(Call(+self)->all - Cself->all(+self)) - which should be the same as sum(excluding self)
+        dR =  gamma[n] * C[n].S[t] + alpha*C[n].I[t]                         + sum([C[var].R[t]*C[var].comR[t][n] - C[n].R[t]*C[n].comR[t][var] for var in range(cities)])
+        dN = -theta    * C[n].I[t]*0
         C[n].dcalc(dS,dI,dR,dN)
-
 
 figsize = (10, 8)
 cols = math.ceil(math.sqrt(cities)) #We're making an nxn display, so we take the nearest sized matrix to go with it
@@ -163,7 +162,7 @@ for n in range(cities):
     axs[n].plot(C[n].t, C[n].I, label='Infected in '          +C[n].name[0], color='blue')
     axs[n].plot(C[n].t, C[n].R, label='Recovered in '         +C[n].name[0], color='green')
     axs[n].plot(C[n].t, C[n].D, label='Dead in '              +C[n].name[0], color='grey')
-    axs[n].plot(C[n].t[1:], C[n].dR, label='dR'              +C[n].name[0], color='black')
+    #axs[n].plot(C[n].t[1:], C[n].dR, label='dR'              +C[n].name[0], color='black')
     axs[n].set_title(                 'Disease-spreading in ' +C[n].name[0])
     #axs[n].plot(C[n].t, list(list(zip(*C[0].comR))[0]), label='Commuting to '       +C[n].name[0], color='black')
     axs[n].legend()
