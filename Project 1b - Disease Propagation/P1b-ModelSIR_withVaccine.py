@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import math
 import numpy as np
 import scipy.integrate
+import integrationMethods
 
 '''
 STATUS : Usable, but still requires some tweaking
@@ -73,7 +74,8 @@ def SIR(state, t):
     return(d_suscept + d_infect + d_recov)#re-pack and return the list
 
 
-sol = scipy.integrate.odeint(SIR, state_0, t)#computes the solution
+#sol = scipy.integrate.odeint(SIR, state_0, t)#computes the solution
+sol = integrationMethods.odeint(SIR, state_0, t)#computes the solution
 
 
 sol_suscept = sol[:,:nb_cities] #unpacking solution list
