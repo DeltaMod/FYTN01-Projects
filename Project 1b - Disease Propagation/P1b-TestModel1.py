@@ -59,7 +59,7 @@ if mode == 'random':
     beta  = [randint(10,500)/1000 for n in range(cities)]  # infection probability (sets 'Infected' )
     gamma = [randint(1,10 )/1000 for n in range(cities)]   # vaccine probability   (sets 'Recovered')
     theta = [randint(1,5)  /1000 for n in range(cities)]   # death probability     (removes from N )
-
+    
 
 class city(object):
     def __init__(self,N,I,R,comN):
@@ -167,9 +167,12 @@ if mode == 'predef':
 
 for t in range(100):
     for n in range(cities):
-        dS = -beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t] - gamma[n]*C[n].S[t]     + sum([C[var].S[t]*C[var].comS[t][n] - C[n].S[t]*C[n].comS[t][var] for var in range(cities)]) 
-        dI =  beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t] - alpha[n]*C[n].I[t]     + sum([C[var].I[t]*C[var].comI[t][n] - C[n].I[t]*C[n].comI[t][var] for var in range(cities)]) #Here, we're calculating sum(Call(+self)->all - Cself->all(+self)) - which should be the same as sum(excluding self)
-        dR =  gamma[n] * C[n].S[t] + alpha[n]*C[n].I[t]                         + sum([C[var].R[t]*C[var].comR[t][n] - C[n].R[t]*C[n].comR[t][var] for var in range(cities)])
+        dS = -beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t] - gamma[n]*C[n].S[t]  \
+        + sum([C[var].S[t]*C[var].comS[t][n] - C[n].S[t]*C[n].comS[t][var] for var in range(cities)]) 
+        dI =  beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t] - alpha[n]*C[n].I[t]  \
+        + sum([C[var].I[t]*C[var].comI[t][n] - C[n].I[t]*C[n].comI[t][var] for var in range(cities)]) #Here, we're calculating sum(Call(+self)->all - Cself->all(+self)) - which should be the same as sum(excluding self)
+        dR =  gamma[n] * C[n].S[t] + alpha[n]*C[n].I[t]                      \
+        + sum([C[var].R[t]*C[var].comR[t][n] - C[n].R[t]*C[n].comR[t][var] for var in range(cities)])
         dN = -theta[n] * C[n].I[t]*0
         C[n].dcalc(dS,dI,dR,dN)
 
