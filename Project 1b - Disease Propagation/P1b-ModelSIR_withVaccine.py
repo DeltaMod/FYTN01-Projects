@@ -71,7 +71,7 @@ def SIR(state, t):
                 d_suscept[n] += w[m][n]*susceptible[m] - w[n][m]*susceptible[n]
                 d_infect[n] += w[m][n]*infected[m] - w[n][m]*infected[n]
                 d_recov[n] += w[m][n]*recovered[m] - w[n][m]*recovered[n]
-    return(d_suscept + d_infect + d_recov)#re-pack and return the list
+    return(np.concatenate([d_suscept,d_infect,d_recov]))#re-pack and return the list
 
 
 #sol = scipy.integrate.odeint(SIR, state_0, t)#computes the solution
