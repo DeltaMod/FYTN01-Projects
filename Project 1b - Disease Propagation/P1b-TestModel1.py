@@ -2,12 +2,6 @@
 """
 Disease Propagation
 
-What Parameters do we need to consider?
-=======================================
-
-Probabilistic Relation - Consecutive interactions? 
-
-
 ||====================================================================||                                                                   
 ||        ,---.         |o              ,---.          |              ||
 ||        |    ,---.,---|.,---.,---.    |  _.,---.,---.|    ,---.     ||
@@ -37,12 +31,19 @@ import numpy as np
 """
 With numpy, you can use np.array([1,2,3]) and then you can multiply it as you normally couldn't with a list
 numpy also allows you to use np.linspace(i,f,N), which is helpful.
+
+You can also make an nxn empty matrix for when you know the final size of the array:
+    np.array([[0.]*4]*5)
+    Where the 0. defines a float, because we love floats
 """
 #import scipy.linalg
 import math
 import matplotlib.pyplot as plt
 from random import randint
 
+"""
+TODO: Check "living cost index" and determine the number of people that commute from low cost to high cost places - make it a small increase
+"""
 mode       = 'predef' # Available modes: predef|random'  
 cities     = 4
 
@@ -111,12 +112,9 @@ class city(object):
         self.comI.append([(self.I[-1]/self.N[-1]) * self.comN[self.n[-1]][var] for var in range(cities)])
         self.comS.append([(self.S[-1]/self.N[-1]) * self.comN[self.n[-1]][var] for var in range(cities)])
         self.comR.append([(self.R[-1]/self.N[-1]) * self.comN[self.n[-1]][var] for var in range(cities)])
-        if self.t[-1] % 5  == 0: 
-            print('Evaluated for time t = ', str(self.t[-1]) )
-        
-  
-       
-        
+        if self.t[-1] % 10  == 0: 
+            print('Evaluated City ', self.name, 'for time t = ', str(self.t[-1]) )
+            
     #class __add__(self,dI,dS,dR)
 
 # - We initialise the cities, and from this can calculate the number of commuters 
@@ -139,11 +137,11 @@ if mode == 'random':
     InitI    = [randint(0,70) for n in range(cities)]
 
 if mode == 'predef':
-    PDCities = [['City 1', 500000, 50],
-                ['City 2', 100000, 20],
-                ['City 3', 50000,  10],
-                ['City 4', 40000,  5],
-                ['City 5', 30000,  1]] # Format: PDCITIES[CityID][n], where n = 0 = name, n = 1 = population, n = 2 = initial infected (%)
+    PDCities = [['Newcastle/Gateshead', 388110, 50],
+                ['Durham'             , 65549,  20],
+                ['Sunderland'         , 277249, 10],
+                ['South Shields'      , 76498,  5 ],
+                ['Consett'            , 24828,  1 ]] # Format: PDCITIES[CityID][n], where n = 0 = name, n = 1 = population, n = 2 = initial infected (%)
     
     Pop      = [PDCities[n][1] for n in range(cities)]
     InitI    = [PDCities[n][2] for n in range(cities)]
@@ -194,3 +192,4 @@ for n in range(cities):
 plt.show()
 
 plt.show()
+
