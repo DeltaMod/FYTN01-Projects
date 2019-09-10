@@ -5,7 +5,7 @@ Disease Propagation
 What Parameters do we need to consider?
 =======================================
 
-Probabilistic Relation - Consecutive interactions?
+Probabilistic Relation - Consecutive interactions? 
 
 
 ||====================================================================||                                                                   
@@ -50,8 +50,8 @@ citynames   = [str(n)+citymoniker[randint(1,len(citymoniker)-1)] for n in range(
 
 
 alpha = 0.01                                         # recovery probability  (sets 'Recovered')
-beta  = 0.01                                      # infection probability (sets 'Infected' )
-gamma = [randint(0,0)/100 for n in range(cities)]   # vaccine probability   (sets 'Recovered')
+beta  = 0.05                                        # infection probability (sets 'Infected' )
+gamma = [0.01 for n in range(cities)]   # vaccine probability   (sets 'Recovered')
 theta = 0.01                                        # death probability     (removes from N )
 
 
@@ -60,19 +60,19 @@ class city(object):
     def __init__(self,N,I,R,comN):
         #Initialise total population, susceptible, infected, and recovered (as well as set t and n to zero)
 
-        self.N    = []; self.N.append(N)            # Total Population
-        self.I    = []; self.I.append(I)            # Total Infected
-        self.R    = []; self.R.append(R)            # Total Recovered 
-        self.S    = []; self.S.append(N-I-R)        # Total Susceptible
-        self.t    = []; self.t.append(0)            # Time elapsed
-        self.n    = []; self.n.append(len(self.N)-1)#
-        self.D    = []; self.D.append(0)            # Total Dead
+        self.N    = [N]              # Total Population
+        self.I    = [I];             # Total Infected
+        self.R    = [R];             # Total Recovered 
+        self.S    = [N-I-R];         # Total Susceptible
+        self.t    = [0];             # Time elapsed
+        self.n    = [len(self.N)-1]; #
+        self.D    = [0];             # Total Dead
         
         # We set up the number of commuters: Data access is self[n].com{N/S/I/R}[m][t] -> from city n, to city m at time t (where n > m is how many "commute to self")
-        self.comN = []; self.comN.append(comN)      # Number of Commuters   FROM city self[n] commuting to city m 
-        self.comI = []                              # Number of Infected    FROM city self[n] commuting to city m
-        self.comS = []                              # Number of Susceptible FROM city self[n] commuting to city m   
-        self.comR = []                              # Number of Recovered   FROM city self[n] commuting to city m 
+        self.comN = [comN];         # Number of Commuters   FROM city self[n] commuting to city m 
+        self.comI = []              # Number of Infected    FROM city self[n] commuting to city m
+        self.comS = []              # Number of Susceptible FROM city self[n] commuting to city m   
+        self.comR = []              # Number of Recovered   FROM city self[n] commuting to city m 
         
         # Initialise the delta terms - the values for n = 0 are set in dcalc, when calculating the first set of changed values
         self.dN   = [] 
@@ -124,7 +124,7 @@ for n in range(cities):
 # We then rationalise the ratio of commuters to each city
 Comm = []
 for n in range(cities):
-    Comm.append([(randint(0,5)/100) * Pop[var]/(sum(Pop)) for var in range(cities)])
+    Comm.append([(randint(1,5)/100) * Pop[var]/(sum(Pop)) for var in range(cities)])
     
     #Then, we find how many people stay in the city - this is just so that our sum later can be sum(all commuters) - (staying) so we only consider travellers
     Comm[n][n] = 1 - sum( Comm[n][:])+Comm[n][n]
@@ -146,7 +146,7 @@ for n in range(cities):
 for t in range(10000):
     for n in range(cities):
         dS = -beta     * C[n].I[t]*C[n].S[t]/C[n].N[t] - gamma[n]*C[n].S[t]  + sum([C[var].S[t]*C[var].comS[t][n] - C[n].S[t]*C[n].comS[t][var] for var in range(cities)]) 
-        dI =  beta     * C[n].I[t]*C[n].S[t]/C[n].N[t] - alpha*C[n].I[t] +     + sum([C[var].I[t]*C[var].comI[t][n] - C[n].I[t]*C[n].comI[t][var] for var in range(cities)]) #Here, we're calculating sum(Call(+self)->all - Cself->all(+self)) - which should be the same as sum(excluding self)
+        dI =  beta     * C[n].I[t]*C[n].S[t]/C[n].N[t] - alpha*C[n].I[t]     + sum([C[var].I[t]*C[var].comI[t][n] - C[n].I[t]*C[n].comI[t][var] for var in range(cities)]) #Here, we're calculating sum(Call(+self)->all - Cself->all(+self)) - which should be the same as sum(excluding self)
         dR =  gamma[n] * C[n].S[t] + alpha*C[n].I[t]                         + sum([C[var].R[t]*C[var].comR[t][n] - C[n].R[t]*C[n].comR[t][var] for var in range(cities)])
         dN = -theta    * C[n].I[t]*0
         C[n].dcalc(dS,dI,dR,dN)
