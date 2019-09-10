@@ -38,22 +38,27 @@ import numpy as np
 With numpy, you can use np.array([1,2,3]) and then you can multiply it as you normally couldn't with a list
 numpy also allows you to use np.linspace(i,f,N), which is helpful.
 """
-import scipy.linalg
+#import scipy.linalg
 import math
 import matplotlib.pyplot as plt
 from random import randint
 
+mode       = 'predef' # Available modes: predef|random'  
 cities     = 4
 
 citymoniker = ['stad','burg','ville','town','thorp'] 
 citynames   = [str(n)+citymoniker[randint(1,len(citymoniker)-1)] for n in range(cities)]
 
-
-alpha = 0.01                                         # recovery probability  (sets 'Recovered')
-beta  = 0.05                                        # infection probability (sets 'Infected' )
-gamma = [0.01 for n in range(cities)]   # vaccine probability   (sets 'Recovered')
-theta = 0.01                                        # death probability     (removes from N )
-
+if mode == 'predef':
+    alpha = [0.1 for n in range(cities)]               # recovery probability  (sets 'Recovered')
+    beta  = [0.4  for n in range(cities)]               # infection probability (sets 'Infected' )
+    gamma = [0.1 for n in range(cities)]               # vaccine probability   (sets 'Recovered')
+    theta = [0.1 for n in range(cities)]               # death probability     (removes from N )
+if mode == 'random':
+    alpha = [randint(10,100)/1000 for n in range(cities)]  # recovery probability  (sets 'Recovered')
+    beta  = [randint(10,500)/1000 for n in range(cities)]  # infection probability (sets 'Infected' )
+    gamma = [randint(1,10 )/1000 for n in range(cities)]   # vaccine probability   (sets 'Recovered')
+    theta = [randint(1,5)  /1000 for n in range(cities)]   # death probability     (removes from N )
 
 
 class city(object):
@@ -118,37 +123,54 @@ class city(object):
 # - We're just going to assume that 10% of each population commutes, and they commute based upon the ratio of the population of each city - so C[0]->C[1] = (C[0].N/10) * C[1].N/(C[0].N+C[1].N+C[2].N) 
 # - When making the real model, we will of course find real values, but for now this will suffice :) 
 
-Pop = []
-for n in range(cities):
-    Pop.append( randint(int(np.exp(15-1-n/(cities/2))),int(np.exp(15-n/(cities/2)))))
-# We then rationalise the ratio of commuters to each city
+Pop =  []
 Comm = []
-for n in range(cities):
-    Comm.append([(randint(1,5)/100) * Pop[var]/(sum(Pop)) for var in range(cities)])
+if mode == 'random':
+    for n in range(cities):
+        Pop.append( randint(int(np.exp(15-1-n/(cities/2))),int(np.exp(15-n/(cities/2)))))
+        # We then rationalise the ratio of commuters to each city
+    for n in range(cities):
+        Comm.append([(randint(1,5)/100) * Pop[var]/(sum(Pop)) for var in range(cities)])
     
     #Then, we find how many people stay in the city - this is just so that our sum later can be sum(all commuters) - (staying) so we only consider travellers
     Comm[n][n] = 1 - sum( Comm[n][:])+Comm[n][n]
-    #for var in range(len(Pop)):
-     #   if var !=n:
-      #      Comm[n][n] = Comm[n][n] - Comm[n][var]
             
-# Now, we make random percentages of each city be infected
-InitI    = [randint(0,70) for n in range(cities)]
+    # Now, we make random percentages of each city be infected
+    InitI    = [randint(0,70) for n in range(cities)]
 
-
+if mode == 'predef':
+    PDCities = [['City 1', 500000, 50],
+                ['City 2', 100000, 20],
+                ['City 3', 50000,  10],
+                ['City 4', 40000,  5],
+                ['City 5', 30000,  1]] # Format: PDCITIES[CityID][n], where n = 0 = name, n = 1 = population, n = 2 = initial infected (%)
+    
+    Pop      = [PDCities[n][1] for n in range(cities)]
+    InitI    = [PDCities[n][2] for n in range(cities)]
+    for n in range(cities):
+        Comm.append([1/10 * Pop[var]/(sum(Pop)) for var in range(cities)])
+    
+    #Then, we find how many people stay in the city - this is just so that our sum later can be sum(all commuters) - (staying) so we only consider travellers
+    Comm[n][n] = 1 - sum( Comm[n][:])+Comm[n][n]
+    
+    
 #Now we generalise all cities into a single dictionary command, callable by C[index].classobjects 
 C = {n:city(Pop[n],Pop[n]*InitI[n]/100,0,Comm[n]) for n in range(cities)}
 #And make some fun names for them to have
-for n in range(cities):
-    C[n].name.append(citynames[n])
+if mode == 'random':
+    for n in range(cities):
+        C[n].name.append(citynames[n])
+if mode == 'predef':
+    for n in range(cities):
+        C[n].name.append(PDCities[n][0])
 #We do not need to make SCS, since C[index] = N - ICS, but we will store it later 
 
-for t in range(10000):
+for t in range(100):
     for n in range(cities):
-        dS = -beta     * C[n].I[t]*C[n].S[t]/C[n].N[t] - gamma[n]*C[n].S[t]  + sum([C[var].S[t]*C[var].comS[t][n] - C[n].S[t]*C[n].comS[t][var] for var in range(cities)]) 
-        dI =  beta     * C[n].I[t]*C[n].S[t]/C[n].N[t] - alpha*C[n].I[t]     + sum([C[var].I[t]*C[var].comI[t][n] - C[n].I[t]*C[n].comI[t][var] for var in range(cities)]) #Here, we're calculating sum(Call(+self)->all - Cself->all(+self)) - which should be the same as sum(excluding self)
-        dR =  gamma[n] * C[n].S[t] + alpha*C[n].I[t]                         + sum([C[var].R[t]*C[var].comR[t][n] - C[n].R[t]*C[n].comR[t][var] for var in range(cities)])
-        dN = -theta    * C[n].I[t]*0
+        dS = -beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t] - gamma[n]*C[n].S[t]     + sum([C[var].S[t]*C[var].comS[t][n] - C[n].S[t]*C[n].comS[t][var] for var in range(cities)]) 
+        dI =  beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t] - alpha[n]*C[n].I[t]     + sum([C[var].I[t]*C[var].comI[t][n] - C[n].I[t]*C[n].comI[t][var] for var in range(cities)]) #Here, we're calculating sum(Call(+self)->all - Cself->all(+self)) - which should be the same as sum(excluding self)
+        dR =  gamma[n] * C[n].S[t] + alpha[n]*C[n].I[t]                         + sum([C[var].R[t]*C[var].comR[t][n] - C[n].R[t]*C[n].comR[t][var] for var in range(cities)])
+        dN = -theta[n] * C[n].I[t]*0
         C[n].dcalc(dS,dI,dR,dN)
 
 figsize = (10, 8)
