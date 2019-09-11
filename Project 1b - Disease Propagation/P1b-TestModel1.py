@@ -35,6 +35,7 @@ numpy also allows you to use np.linspace(i,f,N), which is helpful.
 You can also make an nxn empty matrix for when you know the final size of the array:
     np.array([[0.]*4]*5)
     Where the 0. defines a float, because we love floats
+    
 """
 #import scipy.linalg
 import math
@@ -43,9 +44,11 @@ from random import randint
 
 """
 TODO: Check "living cost index" and determine the number of people that commute from low cost to high cost places - make it a small increase
+TODO: Quarantines after x% number of infected
+Waning immunity: After N days, recovered wears off unless vaccinated and returns recovered individuals to the susceptible state?
 """
 mode       = 'predef' # Available modes: predef|random'  
-cities     = 4
+cities     = 3
 
 citymoniker = ['stad','burg','ville','town','thorp'] 
 citynames   = [str(n)+citymoniker[randint(1,len(citymoniker)-1)] for n in range(cities)]
@@ -54,11 +57,11 @@ if mode == 'predef':
     alpha = [0.1 for n in range(cities)]               # recovery probability  (sets 'Recovered')
     beta  = [0.4  for n in range(cities)]               # infection probability (sets 'Infected' )
     gamma = [0.1 for n in range(cities)]               # vaccine probability   (sets 'Recovered')
-    theta = [0.1 for n in range(cities)]               # death probability     (removes from N )
+    theta = [0 for n in range(cities)]               # death probability     (removes from N )
 if mode == 'random':
     alpha = [randint(10,100)/1000 for n in range(cities)]  # recovery probability  (sets 'Recovered')
-    beta  = [randint(10,500)/1000 for n in range(cities)]  # infection probability (sets 'Infected' )
-    gamma = [randint(1,10 )/1000 for n in range(cities)]   # vaccine probability   (sets 'Recovered')
+    beta  = [randint(50,500)/1000 for n in range(cities)]  # infection probability (sets 'Infected' )
+    gamma = [randint(10,20 )/1000 for n in range(cities)]   # vaccine probability   (sets 'Recovered')
     theta = [randint(1,5)  /1000 for n in range(cities)]   # death probability     (removes from N )
     
 
@@ -163,15 +166,15 @@ if mode == 'predef':
         C[n].name.append(PDCities[n][0])
 #We do not need to make SCS, since C[index] = N - ICS, but we will store it later 
 
-for t in range(100):
+for t in range(10000):
     for n in range(cities):
         dS = -beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t] - gamma[n]*C[n].S[t]  \
         + sum([C[var].S[t]*C[var].comS[t][n] - C[n].S[t]*C[n].comS[t][var] for var in range(cities)]) 
-        dI =  beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t] - alpha[n]*C[n].I[t]  \
+        dI =  beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t] - alpha[n]*C[n].I[t] - theta[n] * C[n].I[t]  \
         + sum([C[var].I[t]*C[var].comI[t][n] - C[n].I[t]*C[n].comI[t][var] for var in range(cities)]) #Here, we're calculating sum(Call(+self)->all - Cself->all(+self)) - which should be the same as sum(excluding self)
         dR =  gamma[n] * C[n].S[t] + alpha[n]*C[n].I[t]                      \
         + sum([C[var].R[t]*C[var].comR[t][n] - C[n].R[t]*C[n].comR[t][var] for var in range(cities)])
-        dN = -theta[n] * C[n].I[t]*0
+        dN = -theta[n] * C[n].I[t]
         C[n].dcalc(dS,dI,dR,dN)
 
 figsize = (10, 8)
