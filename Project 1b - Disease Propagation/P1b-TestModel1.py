@@ -48,22 +48,22 @@ TODO: Quarantines after x% number of infected
 Waning immunity: After N days, recovered wears off unless vaccinated and returns recovered individuals to the susceptible state?
 """
 mode       = 'predef' # Available modes: predef|random'  
-cities     = 3
+cities     = 4
 
 citymoniker = ['stad','burg','ville','town','thorp'] 
 citynames   = [str(n)+citymoniker[randint(1,len(citymoniker)-1)] for n in range(cities)]
 
 if mode == 'predef':
-    alpha = [0.08 for n in range(cities)]             # recovery probability  (sets 'Recovered')
-    beta  = [0.1   for n in range(cities)]            # infection probability (sets 'Infected' )
-    gamma = [0.005 for n in range(cities)]             # vaccine probability   (sets 'Recovered')
+    alpha = [0.008 for n in range(cities)]             # recovery probability  (sets 'Recovered')
+    beta  = [0.01   for n in range(cities)]            # infection probability (sets 'Infected' )
+    gamma = [0.0005 for n in range(cities)]             # vaccine probability   (sets 'Recovered')
     theta = [0.0 for n in range(cities)]               # death probability     (removes from N )
 
 if mode == 'random':
-    alpha = [randint(10,100)/1000 for n in range(cities)]  # recovery probability  (sets 'Recovered')
-    beta  = [randint(800,800)/1000 for n in range(cities)]  # infection probability (sets 'Infected' )
-    gamma = [randint(10,20)/1000 for n in range(cities)]   # vaccine probability   (sets 'Recovered')
-    theta = [randint(1,5)  /1000 for n in range(cities)]   # death probability     (removes from N )
+    alpha = [randint(1,10)/1000 for n in range(cities)]  # recovery probability  (sets 'Recovered')
+    beta  = [randint(30,40)/1000 for n in range(cities)]  # infection probability (sets 'Infected' )
+    gamma = [randint(1,20)/100 for n in range(cities)]   # vaccine probability   (sets 'Recovered')
+    theta = [randint(1,5)/10000 for n in range(cities)]   # death probability     (removes from N )
     
 # If we want to, we can also include the total number of days requried before people who recovered become susceptible again
 # This does, however, mean that we also need to keep track of exactly how many of the recovered people were recovered through vaccination (or we can assume it is the ratio dRi/dRv)
@@ -141,14 +141,14 @@ if mode == 'random':
     Comm[n][n] = 1 - sum( Comm[n][:])+Comm[n][n]
             
     # Now, we make random percentages of each city be infected
-    InitI    = [randint(0,70) for n in range(cities)]
+    InitI    = [randint(0,10) for n in range(cities)]
 
 if mode == 'predef':
-    PDCities = [['Newcastle/Gateshead', 388110, 50],
-                ['Durham'             , 65549,  20],
-                ['Sunderland'         , 277249, 10],
-                ['South Shields'      , 76498,  5 ],
-                ['Consett'            , 24828,  1 ]] # Format: PDCITIES[CityID][n], where n = 0 = name, n = 1 = population, n = 2 = initial infected (%)
+    PDCities = [['Newcastle/Gateshead', 388110, 30],
+                ['Durham'             , 65549,  0],
+                ['Sunderland'         , 277249, 0],
+                ['South Shields'      , 76498,  0 ],
+                ['Consett'            , 24828,  0 ]] # Format: PDCITIES[CityID][n], where n = 0 = name, n = 1 = population, n = 2 = initial infected (%)
     
     Pop      = [PDCities[n][1] for n in range(cities)]
     InitI    = [PDCities[n][2] for n in range(cities)]
@@ -173,33 +173,35 @@ if mode == 'predef':
 timeang = np.linspace(0,2*np.pi,24)
 DayAct  = [(np.sin(timeang[n])*np.sin(timeang[n]))+0.2/np.exp(np.cos(timeang[n])) for n in range(len(timeang))];  DayAct = DayAct/max(DayAct) #you can set all of this = 1 if you don't want a 24 hour clock to increase/decrease all variables    
 #DayAct  = [1 for n in range(len(timeang))]
-WeekAct = [1,1,1,1,1,1,1]
-T   = 4000
-dSr = [0 for n in range(T)] #Temporary term to track dR eta days ago.
+WeekAct = [0.2,0.2,1,1,1,1,1]
+T   = 200
+
+dV = [[0 for t in range(T)] for n in range(cities)]
+dSr = [[0 for t in range(T)] for n in range(cities)]  #Temporary term to track dR eta days ago.
 for t in range(T):
     for n in range(cities):
         DWF = WeekAct[int(t/24)%7]*DayAct[t%24] #Keeps track of Day-Week-Factor 
+        dV[n][t] = gamma[n] * C[n].S[t] #Change in Vaccinated Individuals
         if t >= eta[n]:
-            dSr[n] = (gamma[n] * C[n].S[t-eta[n]] + alpha[n]*C[n].I[t-eta[n]] - dSr[n-eta[n]])*alpha[n]/(alpha[n]+gamma[n])     \
-            + sum([C[var].R[t-eta[n]]*C[var].comR[t-eta[n]][n] - C[n].R[t-eta[n]]*C[n].comR[t-eta[n]][var] for var in range(cities)]) #WeekAct[int(t-eta[n]/24)%7]*DayAct[(t-eta[n])%24]*
-        dS = -beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t] - gamma[n]*C[n].S[t] + dSr[n]  \
-        + sum([C[var].S[t]*C[var].comS[t][n] - C[n].S[t]*C[n].comS[t][var] for var in range(cities)]) 
-        dI =  beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t] - alpha[n]*C[n].I[t] - theta[n] * C[n].I[t]  \
-        + sum([C[var].I[t]*C[var].comI[t][n] - C[n].I[t]*C[n].comI[t][var] for var in range(cities)]) #Here, we're calculating sum(Call(+self)->all - Cself->all(+self)) - which should be the same as sum(excluding self)
-        dR =  gamma[n] * C[n].S[t] + alpha[n]*C[n].I[t]  - dSr[n]                  \
-        + sum([C[var].R[t]*C[var].comR[t][n] - C[n].R[t]*C[n].comR[t][var] for var in range(cities)])
+            dSr[n][t] =  WeekAct[int((t-eta[n])/24)%7]*DayAct[(t-eta[n])%24]*alpha[n]*C[n].I[t-eta[n]]
+        dS = -DWF*beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t] - DWF*gamma[n]*C[n].S[t] + dSr[n][t]  \
+        + DWF*sum([C[var].S[t]*C[var].comS[t][n] - C[n].S[t]*C[n].comS[t][var] for var in range(cities)]) 
+        dI =  DWF*beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t] - DWF*alpha[n]*C[n].I[t] - theta[n] * C[n].I[t]  \
+        + DWF*sum([C[var].I[t]*C[var].comI[t][n] - C[n].I[t]*C[n].comI[t][var] for var in range(cities)]) #Here, we're calculating sum(Call(+self)->all - Cself->all(+self)) - which should be the same as sum(excluding self)
+        dR =  DWF*gamma[n] * C[n].S[t] + DWF*alpha[n]*C[n].I[t]  - dSr[n][t]                  \
+        + DWF*sum([C[var].R[t]*C[var].comR[t][n] - C[n].R[t]*C[n].comR[t][var] for var in range(cities)])
         dN = -theta[n] * C[n].I[t]
         C[n].dcalc(dS,dI,dR,dN)
 
 figsize = (10, 8)
 plt.figure(1)
-cols = math.ceil(math.sqrt(cities)) #We're making an nxn display, so we take the nearest sized matrix to go with it
-rows = math.ceil(math.sqrt(cities))
+cols = 2 #We're making an nxn display, so we take the nearest sized matrix to go with it
+rows = int(round(cities/2))
 fig1, axs = plt.subplots(rows, cols, figsize=figsize, constrained_layout=True)
 axs = axs.flatten()
 for n in range(cities):
-    axs[n].plot(C[n].t, C[n].S, label='Susceptible in '       +C[n].name[0], color='red')
-    axs[n].plot(C[n].t, C[n].I, label='Infected in '          +C[n].name[0], color='blue')
+    axs[n].plot(C[n].t, C[n].S, label='Susceptible in '       +C[n].name[0], color='blue')
+    axs[n].plot(C[n].t, C[n].I, label='Infected in '          +C[n].name[0], color='red')
     axs[n].plot(C[n].t, C[n].R, label='Recovered in '         +C[n].name[0], color='green')
     if sum(theta) != 0:
         axs[n].plot(C[n].t, C[n].N, label='Alive in'              +C[n].name[0], color='orange')
