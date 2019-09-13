@@ -180,7 +180,7 @@ WeekAct = [0.2,0.2,1,1,1,1,1]
 # we will use a function f(0:eta) = e^(-(t-eta))
 
 
-fSr = [(np.power(np.exp((np.linspace(0,eta[n],eta[n]))/eta[n])/np.exp(1) ,4))*np.linspace(0,1,eta[n]) for n in range(cities)]
+fSr = [(np.exp(4*(np.linspace(0,eta[n],eta[n]))/eta[n])/np.exp(1))*np.linspace(0,1,eta[n]) for n in range(cities)]
  
 dV   = [[0 for t in range(T)] for n in range(cities)]   #Temporary term to track dV, eta change in vaccinated individuals (unused)
 dSr  = [[0 for t in range(T)] for n in range(cities)]  #Temporary term to track dR eta days ago.
