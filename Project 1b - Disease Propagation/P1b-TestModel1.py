@@ -53,10 +53,10 @@ citymoniker = ['stad','burg','ville','town','thorp']
 citynames   = [str(n)+citymoniker[randint(1,len(citymoniker)-1)] for n in range(cities)]
 
 if mode == 'predef':
-    alpha = [0.008 for n in range(cities)]             # recovery probability  (sets 'Recovered')
-    beta  = [0.1   for n in range(cities)]            # infection probability (sets 'Infected' )
+    alpha = [0.005 for n in range(cities)]             # recovery probability  (sets 'Recovered')
+    beta  = [0.05   for n in range(cities)]            # infection probability (sets 'Infected' )
     gamma = [0.005 for n in range(cities)]             # vaccine probability   (sets 'Recovered')
-    theta = [0.001 for n in range(cities)]               # death probability     (removes from N )
+    theta = [0.00001 for n in range(cities)]               # death probability     (removes from N )
 
 if mode == 'random':
     alpha = [randint(1,10)/1000 for n in range(cities)]  # recovery probability  (sets 'Recovered')
@@ -66,8 +66,8 @@ if mode == 'random':
     
 # If we want to, we can also include the total number of days requried before people who recovered become susceptible again
 # This does, however, mean that we also need to keep track of exactly how many of the recovered people were recovered through vaccination (or we can assume it is the ratio dRi/dRv)
-eta   = [400 for n in range(cities)]              # re-susceptability rate (in days)    
-T     = 500                                       # hours to run simulation for
+eta   = [500 for n in range(cities)]              # re-susceptability rate (in days)    
+T     = 5000                                       # hours to run simulation for
 
 class city(object):
     def __init__(self,N,I,R,comN):
@@ -144,12 +144,17 @@ if mode == 'random':
     InitI    = [randint(0,10) for n in range(cities)]
 
 if mode == 'predef':
+    """    
     PDCities = [['Newcastle/Gateshead', 388110, 30],
                 ['Durham'             , 65549,  0],
                 ['Sunderland'         , 277249, 0],
                 ['South Shields'      , 76498,  0 ],
-                ['Consett'            , 24828,  0 ]] # Format: PDCITIES[CityID][n], where n = 0 = name, n = 1 = population, n = 2 = initial infected (%)
-    
+                ['Consett'            , 24828,  0 ]]"""
+                # Format: PDCITIES[CityID][n], where n = 0 = name, n = 1 = population, n = 2 = initial infected (%)    
+    PDCities = [['Marseille'  , 861635,30],
+                ['Montpeiller', 277639, 0],
+                ['Toulouse'   , 471941, 0],
+                ['Nimes'      , 150672, 0]]
     Pop      = [PDCities[n][1] for n in range(cities)]
     InitI    = [PDCities[n][2] for n in range(cities)]
     for n in range(cities):
@@ -179,7 +184,6 @@ WeekAct = [0.2,0.2,1,1,1,1,1]
 # using a "moving pool" - One Rpool tracks every change in dR as Rpool = dR+Rpool such that Rpool[eta] should have a near 100% chance to cure the susceptible people added to the pool
 # we will use a function f(0:eta) = e^(-(t-eta))
 
-
 fSr = [(np.power(np.exp((np.linspace(0,eta[n],eta[n]))/eta[n])/np.exp(1) ,4))*np.linspace(0,1,eta[n]) for n in range(cities)]
  
 dV   = [[0 for t in range(T)] for n in range(cities)]   #Temporary term to track dV, eta change in vaccinated individuals (unused)
@@ -193,7 +197,7 @@ for t in range(T):
         Rpool[n]  = Rpool[n][:-1]; Rpool[n].insert(0,WeekAct[int((t)/24)%7]*DayAct[(t)%24]*alpha[n]*C[n].I[t])
         Rdpool[n] = [Rpool[n][m]*fSr[n][m] for m in range(eta[n])]
         dSr[n][t] = sum(Rdpool[n])
-        print(Rpool[0][-1])
+    
         for m in range(eta[n]):
             Rpool[n][m]  = Rpool[n][m] - Rdpool[n][m]
             
