@@ -96,10 +96,10 @@ We assume that the size of commuting traffic is the sum of the two largest citie
 
 31600 people commute per day in this system
 PopCity/(861635+277639+75999+150672) =>
-0.63 % population from Marseille
-0.20 % pop from Montpellier
-0.056% pop from Beziers
-0.114% pop from Nimes
+0.63   population from Marseille
+0.20   pop from Montpellier
+0.056  pop from Beziers
+0.114  pop from Nimes
 
 
 

@@ -53,9 +53,9 @@ citymoniker = ['stad','burg','ville','town','thorp']
 citynames   = [str(n)+citymoniker[randint(1,len(citymoniker)-1)] for n in range(cities)]
 
 if mode == 'predef':
-    alpha = [0.005 for n in range(cities)]             # recovery probability  (sets 'Recovered')
-    beta  = [0.4   for n in range(cities)]            # infection probability (sets 'Infected' )
-    gamma = [0.03 for n in range(cities)]             # vaccine probability   (sets 'Recovered')
+    alpha = [0.05 for n in range(cities)]             # recovery probability  (sets 'Recovered')
+    beta  = [0.3   for n in range(cities)]            # infection probability (sets 'Infected' )
+    gamma = [0.003 for n in range(cities)]             # vaccine probability   (sets 'Recovered')
     theta = [0.01 for n in range(cities)]               # death probability     (removes from N )
 
 if mode == 'random':
@@ -66,8 +66,8 @@ if mode == 'random':
     
 # If we want to, we can also include the total number of days requried before people who recovered become susceptible again
 # This does, however, mean that we also need to keep track of exactly how many of the recovered people were recovered through vaccination (or we can assume it is the ratio dRi/dRv)
-eta   = [300 for n in range(cities)]              # re-susceptability rate (in days)    
-T     = 1500                                      # hours to run simulation for
+eta   = [550 for n in range(cities)]              # re-susceptability rate (in days)    
+T     = 2000                                      # hours to run simulation for
 
 class city(object):
     def __init__(self,N,I,R,comN):
@@ -185,8 +185,9 @@ if mode == 'predef':
 #Since we want to run this simulation in hours, we need to invent a 24 hours "heat clock" which modifies the total number of commuters, and thus the infection probability        
 timeang = np.linspace(0,2*np.pi,24)
 DayAct  = [(np.sin(timeang[n])*np.sin(timeang[n]))+0.2/np.exp(np.cos(timeang[n])) for n in range(len(timeang))];  DayAct = DayAct/max(DayAct) #you can set all of this = 1 if you don't want a 24 hour clock to increase/decrease all variables    
+DayAct[11:] = -DayAct[11:]
 #DayAct  = [1 for n in range(len(timeang))]
-WeekAct = [0.2,0.2,1,1,1,1,1]
+WeekAct = [0.8,0.7,1,1,1,1,1]
 
 #Our current "waning immunity" assumes all dR(t) will become dSr at t+eta - meaning we get mass "susceptible" influxes - we intend to fix this by
 # using a "moving pool" - One Rpool tracks every change in dR as Rpool = dR+Rpool such that Rpool[eta] should have a near 100% chance to cure the susceptible people added to the pool
@@ -204,20 +205,26 @@ for t in range(T):
     for n in range(cities):
         DWF = WeekAct[int(t/24)%7]*DayAct[t%24] #Keeps track of Day-Week-Factor 
         #dV[n][t]  = gamma[n] * C[n].S[t] #Change in Vaccinated Individuals
-        Rpool[n]  = Rpool[n][:-1]; Rpool[n].insert(0,WeekAct[int((t)/24)%7]*DayAct[(t)%24]*alpha[n]*C[n].I[t])
+        Rpool[n]  = Rpool[n][:-1]; Rpool[n].insert(0,abs(DWF)*alpha[n]*C[n].I[t])
         Rdpool[n] = [Rpool[n][m]*fSr[n][m] for m in range(eta[n])]
         dSr[n][t] = sum(Rdpool[n])
     
         for m in range(eta[n]):
             Rpool[n][m]  = Rpool[n][m] - Rdpool[n][m]
-            
-        dS = -DWF*beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t] - DWF*gamma[n]*C[n].S[t] + DWF*dSr[n][t]  \
-        + DWF*sum([C[var].S[t]*C[var].comS[t][n] - C[n].S[t]*C[n].comS[t][var] for var in range(cities)]) 
-        dI =  DWF*beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t] - DWF*alpha[n]*C[n].I[t] - DWF*theta[n] * C[n].I[t]  \
-        + DWF*sum([C[var].I[t]*C[var].comI[t][n] - C[n].I[t]*C[n].comI[t][var] for var in range(cities)]) #Here, we're calculating sum(Call(+self)->all - Cself->all(+self)) - which should be the same as sum(excluding self)
-        dR =  DWF*gamma[n] * C[n].S[t] + DWF*alpha[n]*C[n].I[t]  - dSr[n][t]                  \
-        + DWF*sum([C[var].R[t]*C[var].comR[t][n] - C[n].R[t]*C[n].comR[t][var] for var in range(cities)])
-        dN = -DWF*theta[n] * C[n].I[t]
+        dScom =  DWF*sum([C[var].S[t]*C[var].comS[t][n] - C[n].S[t]*C[n].comS[t][var] for var in range(cities)]) 
+        dS     = -abs(DWF)*beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t] - abs(DWF)*gamma[n]*C[n].S[t] + dSr[n][t]  +dScom
+              
+        
+        dIcom = DWF*sum([C[var].I[t]*C[var].comI[t][n] - C[n].I[t]*C[n].comI[t][var] for var in range(cities)]) 
+        dI    =  abs(DWF)*beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t] - abs(DWF)*alpha[n]*C[n].I[t] - theta[n] * C[n].I[t] +dIcom \
+              #Here, we're calculating sum(Call(+self)->all - Cself->all(+self)) - which should be the same as sum(excluding self)
+        
+        dRcom = DWF*sum([C[var].R[t]*C[var].comR[t][n] - C[n].R[t]*C[n].comR[t][var] for var in range(cities)])
+        dR    =  abs(DWF)*gamma[n] * C[n].S[t] + abs(DWF)*alpha[n]*C[n].I[t]  - dSr[n][t] + dRcom
+              
+        
+        dN = -theta[n] * C[n].I[t] + dIcom + dScom + dRcom
+        
         C[n].dcalc(dS,dI,dR,dN)
 
 figsize = (10, 8)
