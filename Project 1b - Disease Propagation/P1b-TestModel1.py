@@ -54,9 +54,9 @@ citynames   = [str(n)+citymoniker[randint(1,len(citymoniker)-1)] for n in range(
 
 if mode == 'predef':
     alpha = [0.005 for n in range(cities)]             # recovery probability  (sets 'Recovered')
-    beta  = [0.05   for n in range(cities)]            # infection probability (sets 'Infected' )
-    gamma = [0.005 for n in range(cities)]             # vaccine probability   (sets 'Recovered')
-    theta = [0.00001 for n in range(cities)]               # death probability     (removes from N )
+    beta  = [0.4   for n in range(cities)]            # infection probability (sets 'Infected' )
+    gamma = [0.03 for n in range(cities)]             # vaccine probability   (sets 'Recovered')
+    theta = [0.01 for n in range(cities)]               # death probability     (removes from N )
 
 if mode == 'random':
     alpha = [randint(1,10)/1000 for n in range(cities)]  # recovery probability  (sets 'Recovered')
@@ -66,8 +66,8 @@ if mode == 'random':
     
 # If we want to, we can also include the total number of days requried before people who recovered become susceptible again
 # This does, however, mean that we also need to keep track of exactly how many of the recovered people were recovered through vaccination (or we can assume it is the ratio dRi/dRv)
-eta   = [500 for n in range(cities)]              # re-susceptability rate (in days)    
-T     = 5000                                       # hours to run simulation for
+eta   = [300 for n in range(cities)]              # re-susceptability rate (in days)    
+T     = 1500                                      # hours to run simulation for
 
 class city(object):
     def __init__(self,N,I,R,comN):
@@ -110,10 +110,10 @@ class city(object):
         self.dR.append(dR)
         self.t.append(len(self.N))              #Perhaps change this for later
         self.n.append(len(self.N))              #This is just to keep track of how many n has elapsed, I guess it serves the same purpose as t right now
+        self.N.append(self.N[-1] + dN )
         self.S.append(self.S[-1] + dS )
         self.I.append(self.I[-1] + dI )
         self.R.append(self.R[-1] + dR )
-        self.N.append(self.N[-1] + dN )
         self.D.append(self.N[0] - self.N[-1])
         self.comN.append(self.comN[-1])  # If we ever do mortality, this variable will need to be changed proportionally to dN
         self.comI.append([(self.I[-1]/self.N[-1]) * self.comN[self.n[-1]][var] for var in range(cities)])
@@ -152,17 +152,25 @@ if mode == 'predef':
                 ['Consett'            , 24828,  0 ]]"""
                 # Format: PDCITIES[CityID][n], where n = 0 = name, n = 1 = population, n = 2 = initial infected (%)    
     PDCities = [['Marseille'  , 861635,30],
-                ['Montpeiller', 277639, 0],
-                ['Toulouse'   , 471941, 0],
-                ['Nimes'      , 150672, 0]]
+                ['Montpellier', 277639, 0],
+                ['Bezier'   ,   75999 , 0],
+                ['Nimes'      , 150672, 0]] #format: CityName - Population - Percentage Infected 
+    NCOM     = 31600/14.384406911431498                 #Gives daily commuters as a function of our day/night cycle (commuters per hour)
     Pop      = [PDCities[n][1] for n in range(cities)]
+    CF       = [Pop[n]/sum(Pop)for n in range(cities)]
     InitI    = [PDCities[n][2] for n in range(cities)]
-    for n in range(cities):
-        Comm.append([1/10 * Pop[var]/(sum(Pop)) for var in range(cities)])
+
+    Comm     =  [[NCOM*CF[0]*Pop[0]/(Pop[0]*sum(Pop))              , NCOM*CF[0]*Pop[1]/(Pop[0]*sum(Pop)), NCOM*CF[0]*Pop[2]/(Pop[0]*sum(Pop)), NCOM*CF[0]*Pop[3]/(Pop[0]*sum(Pop))],
+                [ NCOM*CF[1]*Pop[0]/(Pop[0]*sum(Pop))               , NCOM*CF[1]*Pop[1]/(Pop[0]*sum(Pop)), NCOM*CF[1]*Pop[2]/(Pop[0]*sum(Pop)), NCOM*CF[1]*Pop[3]/(Pop[0]*sum(Pop))],
+                [ NCOM*CF[2]*Pop[0]/(Pop[0]*sum(Pop))               , NCOM*CF[2]*Pop[1]/(Pop[0]*sum(Pop)), NCOM*CF[2]*Pop[2]/(Pop[0]*sum(Pop)), NCOM*CF[2]*Pop[3]/(Pop[0]*sum(Pop))],
+                [ NCOM*CF[3]*Pop[0]/(Pop[0]*sum(Pop))               , NCOM*CF[3]*Pop[1]/(Pop[0]*sum(Pop)), NCOM*CF[3]*Pop[2]/(Pop[0]*sum(Pop)), NCOM*CF[3]*Pop[3]/(Pop[0]*sum(Pop))]]
+        
     
     #Then, we find how many people stay in the city - this is just so that our sum later can be sum(all commuters) - (staying) so we only consider travellers
-    Comm[n][n] = 1 - sum( Comm[n][:])+Comm[n][n]
-    
+    for n in range(cities):
+        Comm[n][n] = 1 - sum( Comm[n][:])+Comm[n][n]
+
+# Now, we need to justify the total number of commuters to each city - We do this by     
     
 #Now we generalise all cities into a single dictionary command, callable by C[index].classobjects 
 C = {n:city(Pop[n],Pop[n]*InitI[n]/100,0,Comm[n]) for n in range(cities)}
@@ -186,8 +194,8 @@ WeekAct = [0.2,0.2,1,1,1,1,1]
 
 
 
-fSr = [(np.exp(4*(np.linspace(0,eta[n],eta[n]))/eta[n])/np.exp(1))*np.linspace(0,1,eta[n]) for n in range(cities)]
- 
+fSr = [(np.power(np.exp((np.linspace(0,eta[n],eta[n]))/eta[n])/np.exp(1) ,4))*np.linspace(0,1,eta[n]) for n in range(cities)]
+
 dV   = [[0 for t in range(T)] for n in range(cities)]   #Temporary term to track dV, eta change in vaccinated individuals (unused)
 dSr  = [[0 for t in range(T)] for n in range(cities)]  #Temporary term to track dR eta days ago.
 Rpool =[[0 for t in range(eta[n])] for n in range(cities)]
@@ -203,13 +211,13 @@ for t in range(T):
         for m in range(eta[n]):
             Rpool[n][m]  = Rpool[n][m] - Rdpool[n][m]
             
-        dS = -DWF*beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t] - DWF*gamma[n]*C[n].S[t] + dSr[n][t]  \
+        dS = -DWF*beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t] - DWF*gamma[n]*C[n].S[t] + DWF*dSr[n][t]  \
         + DWF*sum([C[var].S[t]*C[var].comS[t][n] - C[n].S[t]*C[n].comS[t][var] for var in range(cities)]) 
-        dI =  DWF*beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t] - DWF*alpha[n]*C[n].I[t] - theta[n] * C[n].I[t]  \
+        dI =  DWF*beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t] - DWF*alpha[n]*C[n].I[t] - DWF*theta[n] * C[n].I[t]  \
         + DWF*sum([C[var].I[t]*C[var].comI[t][n] - C[n].I[t]*C[n].comI[t][var] for var in range(cities)]) #Here, we're calculating sum(Call(+self)->all - Cself->all(+self)) - which should be the same as sum(excluding self)
         dR =  DWF*gamma[n] * C[n].S[t] + DWF*alpha[n]*C[n].I[t]  - dSr[n][t]                  \
         + DWF*sum([C[var].R[t]*C[var].comR[t][n] - C[n].R[t]*C[n].comR[t][var] for var in range(cities)])
-        dN = -theta[n] * C[n].I[t]
+        dN = -DWF*theta[n] * C[n].I[t]
         C[n].dcalc(dS,dI,dR,dN)
 
 figsize = (10, 8)

@@ -1,0 +1,110 @@
+Note: The train line we want to track is - 
+BEZIERS -> MONTPELLIER -> NIMES -> Arles -> MARSEILLE
+                                                                  
+
+
+--Passengers by train through TOULOUSE in 2017--
+Toulouse Matabiau;9788574
+
+--Passengers by train through Carcassonne in 2017--
+Carcassonne;831222
+
+--Passengers by train through Narbonne in 2017--
+Narbonne;1275313
+
+--Passengers by train through Beziers in 2017--
+Beziers;1406529
+
+TOULOUSE<->Montpellier must have a maximum of 831222 connections per year (since that's the smallest number of people on that stretch)
+That's a total of 2277.32054795 per day
+
+--Passengers by train through MONTPELLIER in 2017--
+Montpellier Saint-Roch;8125316
+Montpellier Sud de France;0 #Wow, really? Zero?
+
+We assume that a total of 8125316-1406529 = 6718787 travel through to Nimes
+
+--Passengers by train through NIMES in 2017--
+Nimes = 3862495
+Assume that this stretch is entirely Montpellier<-Nimes->Marseille
+
+3862495 - 458167 - 
+
+--Passengers by train through Arles in 2017--
+Arles;918491
+
+--Passengers by train through Ales
+Ales; 458167
+
+Through Tarascon
+Tarascon: 352811
+
+--Passengers by train through MARSEILLE in 2017--
+Marseille Saint-Charles;16546458
+Marseille-en-Beauvaisis;34135
+Marseillan Plage;8282
+
+
+North of Marseille: 
+L'Estaque;112505
+Marseille-Arenc ;19774
+Saint-Antoine;70873
+Saint-Joseph le Castellas;14151
+Picon Busserine;12342
+
+Vitrolles AÃ©roport Marseille Provence;730533 #We can likely assume all trains going to the other cities goes through here, so the other 4 are (likely) irrelevant
+
+
+Marseille Blancarde;518149 #Goes the wrong way towards Aubagne - we will assume people are actually travelling TO marseille through this one
+
+#Depending on the line these trains take, we can estimate the ratio of people commuting west vs east
+------------------------------------
+
+
+
+
+--Passengers by train through Avignon in 2017--
+Avignon Centre;4096693
+Avignon TGV;3466288
+
+
+Through Aix-en-Provence: 2619162
+Through Toulon: 5012280
+Through Istres: 129047
+
+Avignon TGV;0 #same here
+
+
+Total travelling to and from:
+BEZIERS    = 1406529
+
+MONTPELLIER = 8125316
+
+NIMES       = 3862495
+
+MARSEILLE   = 16546458
+
+Let's just find a total approximate ecosystem, divide the commuters, and divide those by the rest
+
+East from Beziers    = 1406529 - 1275313 = 131216
+W/E from Montpellier = 8125316 - 1275313 = 6850003
+W/E from Nimes       = 3862495 - 458167 - 352811 = 3051517
+W from Marseille = 16546458 - 2619162 - 5012280 - 4096693 - 129047  = 4689276
+
+We assume that the size of commuting traffic is the sum of the two largest cities, and allocate totals based on population size:
+4689276+6850003 = 11539279
+
+31600 people commute per day in this system
+PopCity/(861635+277639+75999+150672) =>
+0.63 % population from Marseille
+0.20 % pop from Montpellier
+0.056% pop from Beziers
+0.114% pop from Nimes
+
+
+
+
+
+
+
+
