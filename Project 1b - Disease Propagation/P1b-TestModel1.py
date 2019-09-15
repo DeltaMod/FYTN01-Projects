@@ -56,7 +56,7 @@ mode           = 'predef'  # predef|single|random     # Choose between randomly 
 DayNightVar    = 'enable'  # enable|disable           # Simulates day/night, and daily variation in infection rate (anything but enable disables)
 WaningImmunity = 'disable'  # enable|disable          # Simulates waning immunity as an exponential function from 0 to eta 
 model          = 'SIR'      # SIS|SIR                 # Picks between two fun models
-T              = 2500 
+T              = 2000
 
 if mode == 'single':
     cities         = 1
@@ -64,7 +64,7 @@ if mode == 'predef':
     cities         = 4
 if mode == 'random':
     cities         = 4
-eta            = [400 for n in range(cities)]         # Waning immunity term - re-susceptability rate (in hours)    
+eta            = [100 for n in range(cities)]         # Waning immunity term - re-susceptability rate (in hours)    
                                 # Hours to run simulation for
 
 if (mode == 'predef' and cities !=4):
@@ -78,9 +78,9 @@ citynames      = [str(n)+citymoniker[randint(1,len(citymoniker)-1)] for n in ran
 
 # Modify infection parameters to your liking - we use: alpha = , beta = , gamma = theta = 0
 if (mode == 'predef' or mode == 'single'):
-    alpha = [0.01 for n in range(cities)]                # recovery probability  (sets 'Recovered')
+    alpha = [0.01 for n in range(cities)]                 # recovery probability  (sets 'Recovered')
     beta  = [0.05   for n in range(cities)]               # infection probability (sets 'Infected' )
-    gamma = [0.00 for n in range(cities)]                # vaccine probability   (sets 'Recovered')
+    gamma = [0.001 for n in range(cities)]               # vaccine probability   (sets 'Recovered')
     theta = [0.0005 for n in range(cities)]               # death probability     (removes from N )
 
 if mode == 'random':
@@ -140,7 +140,7 @@ class city(object):
         self.comI.append([(self.I[-1]/self.N[-1]) * self.comN[self.n[-1]][var] for var in range(cities)])
         self.comS.append([(self.S[-1]/self.N[-1]) * self.comN[self.n[-1]][var] for var in range(cities)])
         self.comR.append([(self.R[-1]/self.N[-1]) * self.comN[self.n[-1]][var] for var in range(cities)])
-        if self.t[-1] % 100  == 0: 
+        if self.t[-1] % int(T/10)  == 0: 
             print('Evaluated City ', self.name, 'for time t = ', str(self.t[-1]) )
             
     #class __add__(self,dI,dS,dR)
@@ -229,7 +229,7 @@ for t in range(T):
         DWF = WeekAct[int(t/24)%7]*DayAct[t%24] #Keeps track of Day-Week-Factor 
         if WaningImmunity == 'enable':
             Rpool[n]  = Rpool[n][:-1]; Rpool[n].insert(0,abs(DWF)*alpha[n]*C[n].I[t])
-            Rdpool[n] = [Rpool[n][m]*fSr[n][m] for m in range(eta[n])]
+            Rdpool[n] = [Rpool[n][m]*fSr[:][n][m] for m in range(eta[n])]
             dSr[n][t] = sum(Rdpool[n])
             for m in range(eta[n]):
                 Rpool[n][m]  = Rpool[n][m] - Rdpool[n][m]
@@ -257,7 +257,7 @@ for t in range(T):
             dR    =  abs(DWF)*gamma[n] * C[n].S[t] + abs(DWF)*alpha[n]*C[n].I[t]  - dSr[n][t] + dRcom
               
         
-            dN = -theta[n] * C[n].I[t] #+ dIcom + dScom + dRcom
+            dN = -theta[n] * C[n].I[t] #- dIcom -dScom - dRcom
             
             C[n].dcalc(dS,dI,dR,dN)
             C[n].D.append( C[n].D[t]+theta[n] * C[n].I[t])
