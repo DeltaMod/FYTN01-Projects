@@ -55,7 +55,7 @@ TODO: Quarantines after x% number of infected?
 mode           = 'single'  # predef|single|random     # Choose between randomly generating city population and infection values, and our preset (and a single city)                    
 DayNightVar    = 'disable'  # enable|disable           # Simulates day/night, and daily variation in infection rate (anything but enable disables)
 WaningImmunity = 'disable'  # enable|disable          # Simulates waning immunity as an exponential function from 0 to eta 
-model          = 'SIS'      # SIS|SIR                 # Picks between two fun models
+model          = 'SIR'      # SIS|SIR                 # Picks between two fun models
 T              = 1800 
 if mode == 'single':
     cities         = 1
@@ -79,8 +79,8 @@ citynames      = [str(n)+citymoniker[randint(1,len(citymoniker)-1)] for n in ran
 if (mode == 'predef' or mode == 'single'):
     alpha = [0.01 for n in range(cities)]                # recovery probability  (sets 'Recovered')
     beta  = [0.05   for n in range(cities)]               # infection probability (sets 'Infected' )
-    gamma = [0.000 for n in range(cities)]                # vaccine probability   (sets 'Recovered')
-    theta = [0.0000 for n in range(cities)]               # death probability     (removes from N )
+    gamma = [0.002*0 for n in range(cities)]                # vaccine probability   (sets 'Recovered')
+    theta = [0.01*0 for n in range(cities)]               # death probability     (removes from N )
 
 if mode == 'random':
     alpha = [randint(1,10)/1000 for n in range(cities)]  # recovery probability  (sets 'Recovered')
@@ -276,7 +276,7 @@ if mode == 'single':
             plt.plot(C[n].t, C[n].D, label='Dead'            , color='grey')
     
  
-        plt.title('SIR model of Marseille ')
+        plt.title(model+' model of Marseille ')
         plt.xlabel('Time elapsed [hours]')
         plt.ylabel('Number of people')
         plt.legend()
