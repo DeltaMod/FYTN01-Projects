@@ -56,7 +56,7 @@ mode           = 'predef'  # predef|single|random     # Choose between randomly 
 DayNightVar    = 'enable'  # enable|disable           # Simulates day/night, and daily variation in infection rate (anything but enable disables)
 WaningImmunity = 'disable'  # enable|disable          # Simulates waning immunity as an exponential function from 0 to eta 
 model          = 'SIR'      # SIS|SIR                 # Picks between two fun models
-T              = 2000
+T              = 1000
 
 if mode == 'single':
     cities         = 1
@@ -80,8 +80,8 @@ citynames      = [str(n)+citymoniker[randint(1,len(citymoniker)-1)] for n in ran
 if (mode == 'predef' or mode == 'single'):
     alpha = [0.01 for n in range(cities)]                 # recovery probability  (sets 'Recovered')
     beta  = [0.05   for n in range(cities)]               # infection probability (sets 'Infected' )
-    gamma = [0.001 for n in range(cities)]               # vaccine probability   (sets 'Recovered')
-    theta = [0.0005 for n in range(cities)]               # death probability     (removes from N )
+    gamma = [0.005 for n in range(cities)]               # vaccine probability   (sets 'Recovered')
+    theta = [0.001 for n in range(cities)]               # death probability     (removes from N )
 
 if mode == 'random':
     alpha = [randint(1,10)/1000 for n in range(cities)]  # recovery probability  (sets 'Recovered')
@@ -166,7 +166,7 @@ if mode == 'random':
 
 if (mode == 'predef' or mode == 'single'):
                 # Format: PDCITIES[CityID][n], where n = 0 = name, n = 1 = population, n = 2 = initial infected (%)    
-    PDCities = [['Marseille'  , 861635, 0.1],
+    PDCities = [['Marseille'  , 861635,70],
                 ['Montpellier', 277639, 0],
                 ['Bezier'   ,   75999 , 0],
                 ['Nimes'      , 150672, 0]]  #format: CityName - Population - Percentage Infected 
@@ -208,7 +208,7 @@ if DayNightVar == 'enable':
     DayAct[12:] = -DayAct[12:]
     WeekAct = [1,1,1,1,1,1,1] #This is set to 1, because anything else breaks the code...
 else:
-    DayAct[:] = 1;
+    DayAct[:] = 2;
     WeekAct = [1,1,1,1,1,1,1]
     
 
@@ -303,3 +303,18 @@ else:
         
 plt.show()
 
+""" 
+Used for manual error calculation
+
+for n in range(501):
+    B[0].t[n] = 2*n
+plt.plot(A[0].t,A[0].I,color = 'darkred'); plt.plot(B[0].t,B[0].I,color = 'red'); plt.plot(A[0].t,A[0].S,color = 'darkblue'); plt.plot(B[0].t,B[0].S,color = 'blue'); plt.plot(A[0].t,A[0].R,color = 'darkgreen'); plt.plot(B[0].t,B[0].R,color = 'green')
+ 
+
+ErrS = [abs(A[0].S[2*n] - B[0].S[n])/(4-1) for n in range(len(B[0].I))]
+ErrI = [abs(A[0].I[2*n] - B[0].I[n])/(4-1) for n in range(len(B[0].I))]
+ErrR = [abs(A[0].R[2*n] - B[0].R[n])/(4-1) for n in range(len(B[0].I))]
+
+plt.plot(ErrS,color = 'blue'); plt.plot(ErrI,color = 'red'); plt.plot(ErrR,color = 'green')       
+
+"""
