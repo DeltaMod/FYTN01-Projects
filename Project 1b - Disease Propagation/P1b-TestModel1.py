@@ -41,7 +41,7 @@ You can also make an nxn empty matrix for when you know the final size of the ar
 import math
 import matplotlib.pyplot as plt
 from random import randint
-
+plt.rcParams['axes.grid'] = True
 """
 TODO: Quarantines after x% number of infected? 
 """
@@ -49,12 +49,22 @@ TODO: Quarantines after x% number of infected?
 #================================#
 #Additional simulation parameters#
 #================================#
-mode           = 'predef'  # predef|random     # Choose between randomly generating city population and infection values, and our preset  
-cities         = 4                             # Total number of cities to run a simulation on - if mode = 'predef', this needs to be equal to 4
-DayNightVar    = 'enable' # enable|disable    # Simulates day/night, and daily variation in infection rate (anything but enable disables)
-WaningImmunity = 'enable'  # enable|disable    # Simulates waning immunity as an exponential function from 0 to eta 
-eta            = [400 for n in range(cities)]  # Waning immunity term - re-susceptability rate (in hours)    
-T              = 400                          # Hours to run simulation for
+
+
+
+mode           = 'single'  # predef|single|random     # Choose between randomly generating city population and infection values, and our preset (and a single city)                    
+DayNightVar    = 'disable'  # enable|disable           # Simulates day/night, and daily variation in infection rate (anything but enable disables)
+WaningImmunity = 'disable'  # enable|disable          # Simulates waning immunity as an exponential function from 0 to eta 
+model          = 'SIS'      # SIS|SIR                 # Picks between two fun models
+T              = 1800 
+if mode == 'single':
+    cities         = 1
+if mode == 'predef':
+    cities         = 4
+if mode == 'random':
+    cities         = 4
+eta            = [400 for n in range(cities)]         # Waning immunity term - re-susceptability rate (in hours)    
+                                # Hours to run simulation for
 
 if (mode == 'predef' and cities !=4):
     print("\033[1;31;47m You need to set cities = 4 to run predef \n")
@@ -66,11 +76,11 @@ citymoniker    = ['stad','burg','ville','town','thorp']
 citynames      = [str(n)+citymoniker[randint(1,len(citymoniker)-1)] for n in range(cities)]
 
 # Modify infection parameters to your liking - we use: alpha = , beta = , gamma = theta = 0
-if mode == 'predef':
-    alpha = [0.001 for n in range(cities)]                # recovery probability  (sets 'Recovered')
+if (mode == 'predef' or mode == 'single'):
+    alpha = [0.01 for n in range(cities)]                # recovery probability  (sets 'Recovered')
     beta  = [0.05   for n in range(cities)]               # infection probability (sets 'Infected' )
-    gamma = [0.0001 for n in range(cities)]                # vaccine probability   (sets 'Recovered')
-    theta = [0.01 for n in range(cities)]               # death probability     (removes from N )
+    gamma = [0.000 for n in range(cities)]                # vaccine probability   (sets 'Recovered')
+    theta = [0.0000 for n in range(cities)]               # death probability     (removes from N )
 
 if mode == 'random':
     alpha = [randint(1,10)/1000 for n in range(cities)]  # recovery probability  (sets 'Recovered')
@@ -124,7 +134,7 @@ class city(object):
         self.S.append(self.S[-1] + dS )
         self.I.append(self.I[-1] + dI )
         self.R.append(self.R[-1] + dR )
-        self.D.append(self.N[0] - self.N[-1])
+        #self.D.append(self.N[0] - self.N[-1]) # We cannot use this, because more people travel to and die without day/night
         self.comN.append(self.comN[-1])  # If we ever do mortality, this variable will need to be changed proportionally to dN
         self.comI.append([(self.I[-1]/self.N[-1]) * self.comN[self.n[-1]][var] for var in range(cities)])
         self.comS.append([(self.S[-1]/self.N[-1]) * self.comN[self.n[-1]][var] for var in range(cities)])
@@ -148,14 +158,14 @@ if mode == 'random':
         Comm.append([(randint(1,5)/100) * Pop[var]/(sum(Pop)) for var in range(cities)])
     
     #Then, we find how many people stay in the city - this is just so that our sum later can be sum(all commuters) - (staying) so we only consider travellers
-    Comm[n][n] = 1 - sum( Comm[n][:])+Comm[n][n]
+    Comm[n][n] = 0 #1 - sum( Comm[n][:])+Comm[n][n]
             
     # Now, we make random percentages of each city be infected
     InitI    = [randint(0,10) for n in range(cities)]
 
-if mode == 'predef':
+if (mode == 'predef' or mode == 'single'):
                 # Format: PDCITIES[CityID][n], where n = 0 = name, n = 1 = population, n = 2 = initial infected (%)    
-    PDCities = [['Marseille'  , 861635, 5],
+    PDCities = [['Marseille'  , 861635, 0.1],
                 ['Montpellier', 277639, 0],
                 ['Bezier'   ,   75999 , 0],
                 ['Nimes'      , 150672, 0]]  #format: CityName - Population - Percentage Infected 
@@ -165,15 +175,17 @@ if mode == 'predef':
     InitI    = [PDCities[n][2] for n in range(cities)]
     
     # The commuter values have been determined from french government sources.
-    Comm     =  [[NCOM*CF[0]*Pop[0]/(Pop[0]*sum(Pop)), NCOM*CF[0]*Pop[1]/(Pop[0]*sum(Pop)), NCOM*CF[0]*Pop[2]/(Pop[0]*sum(Pop)), NCOM*CF[0]*Pop[3]/(Pop[0]*sum(Pop))],
-                [ NCOM*CF[1]*Pop[0]/(Pop[0]*sum(Pop)), NCOM*CF[1]*Pop[1]/(Pop[0]*sum(Pop)), NCOM*CF[1]*Pop[2]/(Pop[0]*sum(Pop)), NCOM*CF[1]*Pop[3]/(Pop[0]*sum(Pop))],
-                [ NCOM*CF[2]*Pop[0]/(Pop[0]*sum(Pop)), NCOM*CF[2]*Pop[1]/(Pop[0]*sum(Pop)), NCOM*CF[2]*Pop[2]/(Pop[0]*sum(Pop)), NCOM*CF[2]*Pop[3]/(Pop[0]*sum(Pop))],
-                [ NCOM*CF[3]*Pop[0]/(Pop[0]*sum(Pop)), NCOM*CF[3]*Pop[1]/(Pop[0]*sum(Pop)), NCOM*CF[3]*Pop[2]/(Pop[0]*sum(Pop)), NCOM*CF[3]*Pop[3]/(Pop[0]*sum(Pop))]]
-        
+    if mode == 'predef':
+        Comm     =  [[NCOM*CF[0]*Pop[0]/(Pop[0]*sum(Pop)), NCOM*CF[0]*Pop[1]/(Pop[0]*sum(Pop)), NCOM*CF[0]*Pop[2]/(Pop[0]*sum(Pop)), NCOM*CF[0]*Pop[3]/(Pop[0]*sum(Pop))],
+                     [ NCOM*CF[1]*Pop[0]/(Pop[0]*sum(Pop)), NCOM*CF[1]*Pop[1]/(Pop[0]*sum(Pop)), NCOM*CF[1]*Pop[2]/(Pop[0]*sum(Pop)), NCOM*CF[1]*Pop[3]/(Pop[0]*sum(Pop))],
+                     [ NCOM*CF[2]*Pop[0]/(Pop[0]*sum(Pop)), NCOM*CF[2]*Pop[1]/(Pop[0]*sum(Pop)), NCOM*CF[2]*Pop[2]/(Pop[0]*sum(Pop)), NCOM*CF[2]*Pop[3]/(Pop[0]*sum(Pop))],
+                     [ NCOM*CF[3]*Pop[0]/(Pop[0]*sum(Pop)), NCOM*CF[3]*Pop[1]/(Pop[0]*sum(Pop)), NCOM*CF[3]*Pop[2]/(Pop[0]*sum(Pop)), NCOM*CF[3]*Pop[3]/(Pop[0]*sum(Pop))]]
+    if mode == 'single':   
+        Comm = [[0],[0]]
     
 #Then, we find how many people stay in the city - this is just so that our sum later can be sum(all commuters) - (staying) so we only consider travellers
     for n in range(cities):
-        Comm[n][n] = (1 - sum( Comm[n][:])+Comm[n][n])
+        Comm[n][n] = 0 #(1 - sum( Comm[n][:])+Comm[n][n])
 # Note that, in the report, it is suggested that ComN[n][n] = 0, but since the sums cancel out, it doesn't matter if it's equal to N-sum(comN[n][m!=n])
 
 
@@ -193,7 +205,7 @@ timeang = np.linspace(0,2*np.pi,24)
 DayAct  = [(np.sin(timeang[n])*np.sin(timeang[n]))+0.2/np.exp(np.cos(timeang[n])) for n in range(len(timeang))];  DayAct = DayAct/max(DayAct) #you can set all of this = 1 if you don't want a 24 hour clock to increase/decrease all variables    
 if DayNightVar == 'enable':    
     DayAct[12:] = -DayAct[12:]
-    WeekAct = [0.8,0.7,1,1,1,1,1]
+    WeekAct = [1,1,1,1,1,1,1] #This is set to 1, because anything else breaks the code...
 else:
     DayAct[:] = 1;
     WeekAct = [1,1,1,1,1,1,1]
@@ -223,43 +235,69 @@ for t in range(T):
         else:
             dSr[n][t] = 0
         
+        if model == 'SIS':
+             dS     = -abs(DWF)*beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t] + abs(DWF)*alpha[n]*C[n].I[t]
+             dI    =  abs(DWF)*beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t]  - abs(DWF)*alpha[n]*C[n].I[t] - theta[n] * C[n].I[t]  
+             dN = -theta[n] * C[n].I[t] 
+             C[n].dcalc(dS,dI,dR,dN)
+             C[n].D.append( C[n].D[t]+theta[n] * C[n].I[t])
+             
+        if model == 'SIR':   
+            dScom =  DWF*sum([C[var].S[t]*C[var].comS[t][n] - C[n].S[t]*C[n].comS[t][var] for var in range(cities)]) 
+            dS     = -abs(DWF)*beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t] - abs(DWF)*gamma[n]*C[n].S[t] + dSr[n][t]  +dScom
+              
         
+            dIcom = DWF*sum([C[var].I[t]*C[var].comI[t][n] - C[n].I[t]*C[n].comI[t][var] for var in range(cities)]) 
+            dI    =  abs(DWF)*beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t] - abs(DWF)*alpha[n]*C[n].I[t] - theta[n] * C[n].I[t] +dIcom \
+                  #Here, we're calculating sum(Call(+self)->all - Cself->all(+self)) - which should be the same as sum(excluding self)
+        
+            dRcom = DWF*sum([C[var].R[t]*C[var].comR[t][n] - C[n].R[t]*C[n].comR[t][var] for var in range(cities)])
+            dR    =  abs(DWF)*gamma[n] * C[n].S[t] + abs(DWF)*alpha[n]*C[n].I[t]  - dSr[n][t] + dRcom
+              
+        
+            dN = -theta[n] * C[n].I[t] + dIcom + dScom + dRcom
             
-        dScom =  DWF*sum([C[var].S[t]*C[var].comS[t][n] - C[n].S[t]*C[n].comS[t][var] for var in range(cities)]) 
-        dS     = -abs(DWF)*beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t] - abs(DWF)*gamma[n]*C[n].S[t] + dSr[n][t]  +dScom
-              
-        
-        dIcom = DWF*sum([C[var].I[t]*C[var].comI[t][n] - C[n].I[t]*C[n].comI[t][var] for var in range(cities)]) 
-        dI    =  abs(DWF)*beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t] - abs(DWF)*alpha[n]*C[n].I[t] - theta[n] * C[n].I[t] +dIcom \
-              #Here, we're calculating sum(Call(+self)->all - Cself->all(+self)) - which should be the same as sum(excluding self)
-        
-        dRcom = DWF*sum([C[var].R[t]*C[var].comR[t][n] - C[n].R[t]*C[n].comR[t][var] for var in range(cities)])
-        dR    =  abs(DWF)*gamma[n] * C[n].S[t] + abs(DWF)*alpha[n]*C[n].I[t]  - dSr[n][t] + dRcom
-              
-        
-        dN = -abs(DWF)*theta[n] * C[n].I[t] + dIcom + dScom + dRcom
-        
-        C[n].dcalc(dS,dI,dR,dN)
+            C[n].dcalc(dS,dI,dR,dN)
+            C[n].D.append( C[n].D[t]+theta[n] * C[n].I[t])
 
 figsize = (10, 8)
 plt.figure(1)
-cols = 2 #We're making an nxn display, so we take the nearest sized matrix to go with it
-rows = int(round(cities/2))
-fig1, axs = plt.subplots(rows, cols, figsize=figsize, constrained_layout=True)
-axs = axs.flatten()
-for n in range(cities):
-    axs[n].plot(C[n].t, C[n].S, label='Susceptible in '       +C[n].name[0], color='blue')
-    axs[n].plot(C[n].t, C[n].I, label='Infected in '          +C[n].name[0], color='red')
-    axs[n].plot(C[n].t, C[n].R, label='Recovered in '         +C[n].name[0], color='green')
-    if sum(theta) != 0:
-        axs[n].plot(C[n].t, C[n].N, label='Alive in'              +C[n].name[0], color='orange')
-        axs[n].plot(C[n].t, C[n].D, label='Dead in '              +C[n].name[0], color='grey')
+plt.figure(dpi=150)
+if mode == 'single':
+    for n in range(cities):
+        figsize = (20, 16)
+        plt.plot(C[n].t, C[n].S, label='Susceptible'       , color='blue')
+        plt.plot(C[n].t, C[n].I, label='Infected'          , color='red')
+        if model == 'SIR':
+            plt.plot(C[n].t, C[n].R, label='Recovered '         , color='green')
+        if sum(theta) != 0:
+            plt.plot(C[n].t, C[n].N, label='Alive'           , color='orange')
+            plt.plot(C[n].t, C[n].D, label='Dead'            , color='grey')
     
-    #axs[n].plot(C[n].t[1:], C[n].dR, label='dR'              +C[n].name[0], color='black')
-    axs[n].set_title(                 'Disease-spreading in ' +C[n].name[0])
-    #axs[n].plot(C[n].t, list(list(zip(*C[0].comR))[0]), label='Commuting to '       +C[n].name[0], color='black')
-    axs[n].legend()
+ 
+        plt.title('Disease-spreading in Marseille ')
+        plt.xlabel('Time elapsed [hours]')
+        plt.ylabel('Number of people')
+        plt.legend()
+        plt.tight_layout() 
 
-plt.grid(True)
+    
+else:
+    cols = 2 #We're making an nxn display, so we take the nearest sized matrix to go with it
+    rows = int(round(cities/2))
+    fig1, axs = plt.subplots(rows, cols, figsize=figsize, constrained_layout=True)
+    axs = axs.flatten()
+    for n in range(cities):
+        axs[n].plot(C[n].t, C[n].S, label='Susceptible', color='blue')
+        axs[n].plot(C[n].t, C[n].I, label='Infected', color='red')
+        axs[n].plot(C[n].t, C[n].R, label='Recovered', color='green')
+        if sum(theta) != 0:
+            axs[n].plot(C[n].t, C[n].N, label='Alive'        , color='orange')
+            axs[n].plot(C[n].t, C[n].D, label='Dead'          , color='grey')
+            #axs[n].plot(C[n].t[1:], C[n].dR, label='dR'              +C[n].name[0], color='black')
+        axs[n].set_title('Disease-spreading in ' +C[n].name[0])
+        #axs[n].plot(C[n].t, list(list(zip(*C[0].comR))[0]), label='Commuting to '       +C[n].name[0], color='black')
+        axs[n].legend(loc = 'right')  
+        
 plt.show()
 
