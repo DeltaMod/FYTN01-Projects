@@ -236,7 +236,8 @@ for t in range(T):
             dSr[n][t] = 0
         
         if model == 'SIS':
-             dS     = -abs(DWF)*beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t] + abs(DWF)*alpha[n]*C[n].I[t]
+             dR    = 0
+             dS    = -abs(DWF)*beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t] + abs(DWF)*alpha[n]*C[n].I[t]
              dI    =  abs(DWF)*beta[n]  * C[n].I[t]*C[n].S[t]/C[n].N[t]  - abs(DWF)*alpha[n]*C[n].I[t] - theta[n] * C[n].I[t]  
              dN = -theta[n] * C[n].I[t] 
              C[n].dcalc(dS,dI,dR,dN)
@@ -275,7 +276,7 @@ if mode == 'single':
             plt.plot(C[n].t, C[n].D, label='Dead'            , color='grey')
     
  
-        plt.title('Disease-spreading in Marseille ')
+        plt.title('SIR model of Marseille ')
         plt.xlabel('Time elapsed [hours]')
         plt.ylabel('Number of people')
         plt.legend()
