@@ -41,18 +41,26 @@ import matplotlib.pyplot as plt
 plt.rcParams['figure.dpi']   = 150
 plt.rcParams['axes.grid'] = False
 
-
 original = imread('EM_ScreamGS.bmp')[:,:,0]
-mask = imread('mask.bmp')[:,:,0]
-
+mask = imread('mask2.bmp')[:,:,0]
+mask  = mask/255 
 plt.figure()
 plt.imshow(original, cmap='gray')
 plt.title('Original Image')
 plt.show()
 
+##
 plt.figure()
-plt.imshow(mask2, cmap='gray')
+plt.imshow(mask, cmap='gray')
 plt.title('Mask')
 plt.show()
+
+##
+damaged_img = original*mask
+plt.figure()
+plt.imshow(damaged_img, cmap='gray')
+plt.title('Damaged image')
+plt.show()
+
 
 

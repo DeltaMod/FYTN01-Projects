@@ -2,7 +2,7 @@ from matplotlib.pyplot import imread
 import matplotlib.pyplot as plt
 
 original = imread('EM_ScreamGS.bmp')[:,:,0]
-mask = imread('mask.bmp')[:,:,0]
+mask = imread('mask2.bmp')[:,:,0]
 
 plt.figure()
 plt.imshow(original, cmap='gray')
