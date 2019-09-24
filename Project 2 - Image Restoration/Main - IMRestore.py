@@ -42,8 +42,10 @@ plt.rcParams['figure.dpi']   = 150
 plt.rcParams['axes.grid'] = False
 
 original = imread('EM_ScreamGS.bmp')[:,:,0]
-mask = imread('mask2.bmp')[:,:,0]
-mask  = mask/255 
+Dim   = original.shape
+rowrange = Dim[0]; colrange = Dim[1]
+
+mask = imread('mask2.bmp')[:,:,0]/255
 plt.figure()
 plt.imshow(original, cmap='gray')
 plt.title('Original Image')
@@ -56,11 +58,55 @@ plt.title('Mask')
 plt.show()
 
 ##
-damaged_img = original*mask
+dmgI = original*mask
 plt.figure()
-plt.imshow(damaged_img, cmap='gray')
+plt.imshow(dmgI, cmap='gray')
 plt.title('Damaged image')
 plt.show()
 
+IMRes = np.zeros([rowrange,colrange])
+
+h = 1 #Lattice Parameter 
+LO =  np.array([[0, 1, 0],
+                 [1, -4, 1],
+                 [0, 1, 0]])
+CC =  np.array([[1, 1,   1],
+                 [1, 0.5, 1],
+                 [1, 1,   1]])
+LC = np.array([[1,  1,   1],
+                 [1, 0.75, 1],
+                 [1, 1,   1]])
+for row in range(rowrange-1):
+    for col in range(colrange-1):
+        
+        #First we check corner cases, because they need a CornerCorrection (CC) matrix applied to each appropriate matrix
+        if dmgI[row][col] == 0:
+            if row == 0:
+                if col == 0:                #TL Corner - Want BR matrix only
+                    IMRes[row][col] = sum(sum(dmgI[row:row+2,col:col+2]*LO[1:3,1:3]*CC[1:3,1:3]))
+                elif col == colrange:       #TR Corner - Want BL matrix only
+                    IMRes[row][col] = sum(sum(dmgI[row:row+2,col-1:col+1]*LO[1:3,0:2]*CC[1:3,0:2]))
+                else:                       #Top Line - Want Bottom matrix only
+                    IMRes[row][col] = sum(sum(dmgI[row:row+2,col-1:col+2]*LO[1:3,0:3]*LC[1:3,0:3]))
+            elif row == rowrange:
+                if col == 0:                 #BL Corner - Want TR matrix only 
+                    IMRes[row][col] = sum(sum(dmgI[row-1:row+1,col:col+2]*LO[0:2,1:3]*CC[0:2,1:3]))
+                elif col == colrange:        #BR Corner- Want TL matrix only
+                    IMRes[row][col] = sum(sum(dmgI[row-1:row+1,col-1:col+1]*LO[0:2,0:2]*CC[0:2,0:2])) 
+                else:                        #Bottom Line - Want Top Matrix only
+                    IMRes[row][col] = sum(sum(dmgI[row-1:row+1,col-1:col+2]*LO[1:3,0:3]*LC[1:3,0:3]))
+            elif col == 0 and row != 0 and row != rowrange:         #Left Line - Want Right Matrix only
+                IMRes[row][col] = sum(sum(dmgI[row-1:row+2,col:col+2]*LO[0:3,1:3]*LC[0:3,1:3]))
+            elif col == colrange and row != 0 and row != rowrange:  #Right Line - Want Left Matrix only
+                IMRes[row][col] = sum(sum(dmgI[row-1:row+2,col-1:col+1]*LO[1:3,0:3]*LC[0:3,0:2]))   
+            else:
+                IMRes[row][col] = sum(sum(dmgI[row-1:row+2,col-1:col+2]*LO[0:3,0:3]))   
+        else:
+            IMRes[row][col] = dmgI[row][col]
+      
 
 
+plt.figure()
+plt.imshow(IMRes, cmap='gray')
+plt.title('Restored Image?')
+plt.show()
