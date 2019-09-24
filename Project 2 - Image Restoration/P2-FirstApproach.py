@@ -13,3 +13,10 @@ plt.figure()
 plt.imshow(mask, cmap='gray')
 plt.title('Mask')
 plt.show()
+
+##
+damaged_img = original*(1-mask)
+plt.figure()
+plt.imshow(damaged_img, cmap='gray')
+plt.title('Damaged image')
+plt.show()
