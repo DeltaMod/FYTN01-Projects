@@ -36,11 +36,23 @@ constant, change the boundary condition etc. Or, you may want to consult one of
 the methods available in the literature (see [3]-[6]). Or, even better, come up with
 some method of your own!
 """
-
-import numpy as np 
-import math
+from matplotlib.pyplot import imread
 import matplotlib.pyplot as plt
-from random import randint
-import scipy.misc.imread as imr
-plt.rcParams['axes.grid'] = True
-"""
+plt.rcParams['figure.dpi']   = 150
+plt.rcParams['axes.grid'] = False
+
+
+original = imread('EM_ScreamGS.bmp')[:,:,0]
+mask = imread('mask.bmp')[:,:,0]
+
+plt.figure()
+plt.imshow(original, cmap='gray')
+plt.title('Original Image')
+plt.show()
+
+plt.figure()
+plt.imshow(mask2, cmap='gray')
+plt.title('Mask')
+plt.show()
+
+
