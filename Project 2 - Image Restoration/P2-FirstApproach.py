@@ -11,13 +11,13 @@ plt.show()
 
 ##
 plt.figure()
-plt.imshow(mask, cmap='gray')
+plt.imshow(mask, cmap='gray_r')
 plt.title('Mask')
 plt.show()
 
 ##
-damaged_img = original*(1-(mask/255))
+damaged_img = (255-original)*(mask/255)
 plt.figure()
-plt.imshow(damaged_img, cmap='gray')
+plt.imshow(damaged_img, cmap='gray_r')
 plt.title('Damaged image')
 plt.show()
