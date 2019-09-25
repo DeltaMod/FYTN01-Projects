@@ -38,6 +38,7 @@ some method of your own!
 """
 from matplotlib.pyplot import imread
 import matplotlib.pyplot as plt
+import numpy as np
 plt.rcParams['figure.dpi']   = 150
 plt.rcParams['axes.grid'] = False
 
