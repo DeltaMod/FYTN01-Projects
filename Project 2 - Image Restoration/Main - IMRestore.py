@@ -42,11 +42,11 @@ import numpy as np
 plt.rcParams['figure.dpi']   = 150
 plt.rcParams['axes.grid'] = False
 
-original = imread('EM_ScreamGS.bmp')[:,:,0]
+original = imread('EM_ScreamGS_lowres.bmp')[:,:,0]
 Dim   = original.shape
 rowrange = Dim[0]; colrange = Dim[1]
 
-mask = imread('mask2.bmp')[:,:,0]/255
+mask = imread('mask_lowres2.bmp')[:,:,0]/255
 plt.figure()
 plt.imshow(original, cmap='gray')
 plt.title('Original Image')
@@ -71,11 +71,20 @@ h = 1 #Lattice Parameter
 LO =  np.array([[0, 1, 0],
                  [1, -4, 1],
                  [0, 1, 0]])
+LO =  np.array([ [-1, -1, -1],
+                 [-1, 8, -1],
+                 [-1, -1, -1]])
 CC =  np.array([[1, 1,   1],
                  [1, 0.5, 1],
                  [1, 1,   1]])
+CC =  np.array([[1, 1,   1],
+                 [1, 5/8, 1],
+                 [1, 1,   1]])
 LC = np.array([[1,  1,   1],
                  [1, 0.75, 1],
+                 [1, 1,   1]])
+LC = np.array([[1,  1,   1],
+                 [1, 5/8, 1],
                  [1, 1,   1]])
 for row in range(rowrange-1):
     for col in range(colrange-1):
