@@ -84,7 +84,7 @@ plt.show()
 IMRes = maskI #Initialise size of "restored image"
 
 h = 1 #Lattice Parameter 
-KernelMode = 'Gauss-3x3'     # EdgeLapl|IEdgeLapl|Gauss-3x3|Gauss6x6|Unsharp
+KernelMode = 'Gauss-5x5'     # EdgeLapl|IEdgeLapl|Gauss-3x3|Gauss-5x5|Unsharp-5x5
 SearchMode = 'PixelsOnly'    # FullImage|PixelsOnly
 if KernelMode == 'EdgeLapl':
     LO =  np.array([[0,  1, 0],
@@ -99,8 +99,20 @@ elif KernelMode == 'IEdgeLapl':
 elif KernelMode == 'Gauss-3x3':
     LO =  1/16*np.array([ [1, 2, 1],
                           [2, 4, 2],
-                          [1, 2, 1]]) #Gaussian Blur
-
+                          [1, 2, 1]]) #Gaussian Blur 3x3
+elif KernelMode == 'Gauss-5x5':
+    LO =  1/256*np.array([ [1,  4,  6,  4, 1],
+                       [4, 16, 24, 16, 4],
+                       [6, 24, 36, 24, 6],
+                       [4, 16, 24, 16, 4],
+                       [1,  4,  6,  4, 1]]) #Gaussian Blur 5x5
+elif KernelMode == 'Unsharp-5x5':
+    LO = -1/256*np.array([ [1,  4,    6,  4, 1],
+                          [4, 16,   24, 16, 4],
+                          [6, 24, -476, 24, 6],
+                          [4, 16,   24, 16, 4],
+                          [1,  4,    6,  4, 1]]) #Gaussian Blur 5x5
+dLO = int(np.floor(len(LO)/2)); uLO = (len(LO) - dLO); 
 def s_transform(mask):
     s_map = []
     for x in range(mask.shape[0]):
@@ -110,20 +122,16 @@ def s_transform(mask):
     return(s_map)
 s_coord = s_transform(maskI)
 
-for repeats in range(4):
+for repeats in range(10):
     if SearchMode == 'FullImage':
-        for row in range(mirr,mirr+rowrange):
+        for row in range(mirr,mirr+rowrange):s
             for col in range(micr,micr+colrange):
-                if [row,col] in s_coord:
-                    IMRes[row-mirr][col-micr] = sum(sum(dmgI[row-1:row+2,col-1:col+2]*LO))
-    
-                else:
-                    IMRes[row-mirr][col-micr] = maskI[row-mirr][col-micr]
+                IMRes[row-mirr][col-micr] = sum(sum(dmgI[row-dLO:row+uLO,col-dLO:col+uLO]*LO))
     
     if SearchMode == 'PixelsOnly':
         for pix in range(len(s_coord)):
             row = s_coord[pix][0]; col = s_coord[pix][1]
-            IMRes[row - mirr][col-micr] = sum(sum(dmgI[row-1:row+2,col-1:col+2]*LO))
+            IMRes[row - mirr][col-micr] = sum(sum(dmgI[row-dLO:row+uLO,col-dLO:col+uLO]*LO))
     
     mirrIB   = np.array([[IMRes[row+1,col+1] for col in range(colrange-2)] for row in range(rowrange-2)]) #Then take the mirror plane to be [start+1:end-1]
     mirrIV   = np.array([[IMRes[row,col+1]   for col in range(colrange-2)] for row in range(rowrange  )])   #Vertical cut = column trimming
