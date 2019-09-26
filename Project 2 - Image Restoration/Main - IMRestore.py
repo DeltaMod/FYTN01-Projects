@@ -74,66 +74,85 @@ mirr    = mirrDim[0];  micr= mirrDim[1] #MIrror-Row-Range and MIrror-Column-Rang
 #In order, row by row from top to bottom, we get:  both|vert|both:hor|ORIGINAL
 TBR    = np.hstack((np.flip(mirrIB,axis = None), np.flip(mirrIH,0),np.flip(mirrIB,axis = None)))
 MR     = np.hstack((np.flip(mirrIV,-1),maskI,np.flip(mirrIV,-1)))
-dmgI  = np.vstack((TBR,MR,TBR))
+dmgI   = np.vstack((TBR,MR,TBR))
   
 plt.figure()
 plt.imshow(dmgI, cmap='gray')
 plt.title('Damaged image')
 plt.show()
 
-IMRes = np.zeros([rowrange,colrange])
+IMRes = maskI #Initialise size of "restored image"
 
 h = 1 #Lattice Parameter 
 KernelMode = 'Gauss-3x3'     # EdgeLapl|IEdgeLapl|Gauss-3x3|Gauss6x6|Unsharp
-
+SearchMode = 'PixelsOnly'    # FullImage|PixelsOnly
 if KernelMode == 'EdgeLapl':
     LO =  np.array([[0,  1, 0],
                     [1, -4, 1], #Edge Laplacian
                     [0,  1, 0]])
-    CC =  np.array([[1,   1, 1],
-                    [1, 0.5, 1],
-                    [1,   1, 1]])
-    LC = np.array([[1,  1,   1],
-                 [1, 0.75, 1],
-                 [1, 1,   1]])
     
 elif KernelMode == 'IEdgeLapl':                    
     LO =  np.array([ [-1, -1, -1],
                      [-1,  8, -1], #Inverse Edge Laplacian
                      [-1, -1, -1]])
-    CC =  np.array([[1,   1,  1],
-                    [1, 5/8,  1],
-                    [1,   1,  1]])
-    LC = np.array([[1,  1,   1],
-                 [1, 5/8, 1],
-                 [1, 1,   1]])
 
 elif KernelMode == 'Gauss-3x3':
     LO =  1/16*np.array([ [1, 2, 1],
                           [2, 4, 2],
                           [1, 2, 1]]) #Gaussian Blur
-    CC = np.ones((3,3))
-    LC = np.ones((3,3))
 
 def s_transform(mask):
     s_map = []
     for x in range(mask.shape[0]):
         for y in range(mask.shape[1]):
             if mask[x,y] == 0:
-                s_map.append([x,y])
+                s_map.append([x+mirr,y+micr])
     return(s_map)
-s_coord = s_transform(mask)
-for row in range(mirr,mirr+rowrange):
-    for col in range(micr,micr+colrange):
-        if dmgI[row][col] == 0:
-            IMRes[row-mirr][col-micr] = sum(sum(dmgI[row-1:row+2,col-1:col+2]*LO))
-        else:
-             IMRes[row-mirr][col-micr] = maskI[row-mirr][col-micr]
+s_coord = s_transform(maskI)
+
+for repeats in range(4):
+    if SearchMode == 'FullImage':
+        for row in range(mirr,mirr+rowrange):
+            for col in range(micr,micr+colrange):
+                if [row,col] in s_coord:
+                    IMRes[row-mirr][col-micr] = sum(sum(dmgI[row-1:row+2,col-1:col+2]*LO))
+    
+                else:
+                    IMRes[row-mirr][col-micr] = maskI[row-mirr][col-micr]
+    
+    if SearchMode == 'PixelsOnly':
+        for pix in range(len(s_coord)):
+            row = s_coord[pix][0]; col = s_coord[pix][1]
+            IMRes[row - mirr][col-micr] = sum(sum(dmgI[row-1:row+2,col-1:col+2]*LO))
+    
+    mirrIB   = np.array([[IMRes[row+1,col+1] for col in range(colrange-2)] for row in range(rowrange-2)]) #Then take the mirror plane to be [start+1:end-1]
+    mirrIV   = np.array([[IMRes[row,col+1]   for col in range(colrange-2)] for row in range(rowrange  )])   #Vertical cut = column trimming
+    mirrIH   = np.array([[IMRes[row+1,col]   for col in range(colrange  )] for row in range(rowrange-2)])   #Horizontal cut = row trimming
+    TBR    = np.hstack((np.flip(mirrIB,axis = None), np.flip(mirrIH,0),np.flip(mirrIB,axis = None)))
+    MR     = np.hstack((np.flip(mirrIV,-1),IMRes,np.flip(mirrIV,-1)))
+    dmgI   = np.vstack((TBR,MR,TBR))
 
 """
 
 Legacy Code, which still uses corner and edge conditions - obsolete to the max, considering what we have now
 This code does not use a mirror matrix, and must use the mask image alone, which is NOT called dmgI anymore - to change
+
+
+Old correction Kernels:
+    CornerCorrection for laplacian edge finder
+    CC =  np.array([[1,   1, 1],
+                    [1, 0.5, 1],
+                    [1,   1, 1]])
+    LC = np.array([[1,  1,   1],
+                 [1, 0.75, 1],
+                 [1, 1,   1]])
+    Corner/EdgeCorrection for laplacian inverse edge finder
+    CC =  np.array([[1,   1,  1],
+                    [1, 5/8,  1],
+                    [1,   1,  1]])
+    LC = np.array([[1,  1,   1],
+                 [1, 5/8, 1],
+                 [1, 1,   1]])
 for row in range(rowrange):
     for col in range(colrange):
         
