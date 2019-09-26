@@ -39,7 +39,7 @@ some method of your own!
 from matplotlib.pyplot import imread
 import matplotlib.pyplot as plt
 import numpy as np
-plt.rcParams['figure.dpi']   = 150
+plt.rcParams['figure.dpi']   = 200
 plt.rcParams['axes.grid'] = False
 
 original = imread('EM_ScreamGS_lowres.bmp')[:,:,0]
@@ -59,7 +59,23 @@ plt.title('Mask')
 plt.show()
 
 ##
-dmgI = original*mask
+maskI    = original*mask                                                                             #We make the original image
+#For the mirroring, we need three types - corner cuts (both), vertical cuts (column pixels only), vertical cuts (row pixels only)
+mirrIB   = np.array([[maskI[row+1,col+1] for col in range(colrange-2)] for row in range(rowrange-2)]) #Then take the mirror plane to be [start+1:end-1]
+mirrIV   = np.array([[maskI[row,col+1]   for col in range(colrange-2)] for row in range(rowrange  )])   #Vertical cut = column trimming
+mirrIH   = np.array([[maskI[row+1,col]   for col in range(colrange  )] for row in range(rowrange-2)])   #Horizontal cut = row trimming
+
+mirrDim = mirrIB.shape 
+mirr    = mirrDim[0];  micr= mirrDim[1] #MIrror-Row-Range and MIrror-Column-Range - 
+#We only need mirrIB.shape, because it's the only offset we need to know to for loop all of the damaged image for our recreation
+
+#Then, the damaged image is the full 3x3 matrix of correctly mirrored images, as to allow the kernel to sample corners and edges with no modification
+#We use np.flip(mirrI,axis = 1) for Horizontal, and np.flip(axis = 0) for vertical - finally np.flip(mirrIB,axis=None) for both
+#In order, row by row from top to bottom, we get:  both|vert|both:hor|ORIGINAL
+TBR    = np.hstack((np.flip(mirrIB,axis = None), np.flip(mirrIH,0),np.flip(mirrIB,axis = None)))
+MR     = np.hstack((np.flip(mirrIV,-1),maskI,np.flip(mirrIV,-1)))
+dmgI  = np.vstack((TBR,MR,TBR))
+  
 plt.figure()
 plt.imshow(dmgI, cmap='gray')
 plt.title('Damaged image')
@@ -68,29 +84,58 @@ plt.show()
 IMRes = np.zeros([rowrange,colrange])
 
 h = 1 #Lattice Parameter 
-LO =  np.array([[0, 1, 0],
-                 [1, -4, 1],
-                 [0, 1, 0]])
-LO =  np.array([ [-1, -1, -1],
-                 [-1, 8, -1],
-                 [-1, -1, -1]])
-CC =  np.array([[1, 1,   1],
-                 [1, 0.5, 1],
-                 [1, 1,   1]])
-LO =  1/16*np.array([ [1, 2, 1],
-                 [2, 4, 2],
-                 [1, 2, 1]]) #Gaussian Blur
-CC =  np.array([[1, 1,   1],
-                 [1, 5/8, 1],
-                 [1, 1,   1]])
-LC = np.array([[1,  1,   1],
+KernelMode = 'Gauss-3x3'     # EdgeLapl|IEdgeLapl|Gauss-3x3|Gauss6x6|Unsharp
+
+if KernelMode == 'EdgeLapl':
+    LO =  np.array([[0,  1, 0],
+                    [1, -4, 1], #Edge Laplacian
+                    [0,  1, 0]])
+    CC =  np.array([[1,   1, 1],
+                    [1, 0.5, 1],
+                    [1,   1, 1]])
+    LC = np.array([[1,  1,   1],
                  [1, 0.75, 1],
                  [1, 1,   1]])
-LC = np.array([[1,  1,   1],
+    
+elif KernelMode == 'IEdgeLapl':                    
+    LO =  np.array([ [-1, -1, -1],
+                     [-1,  8, -1], #Inverse Edge Laplacian
+                     [-1, -1, -1]])
+    CC =  np.array([[1,   1,  1],
+                    [1, 5/8,  1],
+                    [1,   1,  1]])
+    LC = np.array([[1,  1,   1],
                  [1, 5/8, 1],
                  [1, 1,   1]])
-for row in range(rowrange-1):
-    for col in range(colrange-1):
+
+elif KernelMode == 'Gauss-3x3':
+    LO =  1/16*np.array([ [1, 2, 1],
+                          [2, 4, 2],
+                          [1, 2, 1]]) #Gaussian Blur
+    CC = np.ones((3,3))
+    LC = np.ones((3,3))
+
+def s_transform(mask):
+    s_map = []
+    for x in range(mask.shape[0]):
+        for y in range(mask.shape[1]):
+            if mask[x,y] == 0:
+                s_map.append([x,y])
+    return(s_map)
+s_coord = s_transform(mask)
+for row in range(mirr,mirr+rowrange):
+    for col in range(micr,micr+colrange):
+        if dmgI[row][col] == 0:
+            IMRes[row-mirr][col-micr] = sum(sum(dmgI[row-1:row+2,col-1:col+2]*LO))
+        else:
+             IMRes[row-mirr][col-micr] = maskI[row-mirr][col-micr]
+
+"""
+
+Legacy Code, which still uses corner and edge conditions - obsolete to the max, considering what we have now
+This code does not use a mirror matrix, and must use the mask image alone, which is NOT called dmgI anymore - to change
+for row in range(rowrange):
+    for col in range(colrange):
         
         #First we check corner cases, because they need a CornerCorrection (CC) matrix applied to each appropriate matrix
         if dmgI[row][col] == 0:
@@ -116,7 +161,7 @@ for row in range(rowrange-1):
                 IMRes[row][col] = sum(sum(dmgI[row-1:row+2,col-1:col+2]*LO[0:3,0:3]))   
         else:
             IMRes[row][col] = dmgI[row][col]
-      
+"""      
 
 
 plt.figure()
