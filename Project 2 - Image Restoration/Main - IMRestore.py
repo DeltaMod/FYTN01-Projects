@@ -124,7 +124,7 @@ s_coord = s_transform(maskI)
 
 for repeats in range(10):
     if SearchMode == 'FullImage':
-        for row in range(mirr,mirr+rowrange):s
+        for row in range(mirr,mirr+rowrange):
             for col in range(micr,micr+colrange):
                 IMRes[row-mirr][col-micr] = sum(sum(dmgI[row-dLO:row+uLO,col-dLO:col+uLO]*LO))
     
@@ -195,3 +195,9 @@ plt.figure()
 plt.imshow(IMRes, cmap='gray')
 plt.title('Restored Image?')
 plt.show()
+
+## Error Calculation (compare original to filtered image)
+
+IMDiff = -abs(original - IMRes)
+plt.figure()
+plt.imshow(IMDiff,cmap='gray')
