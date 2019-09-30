@@ -86,33 +86,48 @@ IMRes = maskI #Initialise size of "restored image"
 h = 1 #Lattice Parameter 
 KernelMode = 'Gauss-5x5'     # EdgeLapl|IEdgeLapl|Gauss-3x3|Gauss-5x5|Unsharp-5x5
 SearchMode = 'PixelsOnly'    # FullImage|PixelsOnly
-if KernelMode == 'EdgeLapl':
-    LO =  np.array([[0,  1, 0],
-                    [1, -4, 1], #Edge Laplacian
-                    [0,  1, 0]])
-    
-elif KernelMode == 'IEdgeLapl':                    
-    LO =  np.array([ [-1, -1, -1],
-                     [-1,  8, -1], #Inverse Edge Laplacian
-                     [-1, -1, -1]])
 
-elif KernelMode == 'Gauss-3x3':
-    LO =  1/16*np.array([ [1, 2, 1],
-                          [2, 4, 2],
-                          [1, 2, 1]]) #Gaussian Blur 3x3
-elif KernelMode == 'Gauss-5x5':
-    LO =  1/256*np.array([ [1,  4,  6,  4, 1],
-                       [4, 16, 24, 16, 4],
-                       [6, 24, 36, 24, 6],
-                       [4, 16, 24, 16, 4],
-                       [1,  4,  6,  4, 1]]) #Gaussian Blur 5x5
-elif KernelMode == 'Unsharp-5x5':
-    LO = -1/256*np.array([ [1,  4,    6,  4, 1],
-                          [4, 16,   24, 16, 4],
-                          [6, 24, -476, 24, 6],
-                          [4, 16,   24, 16, 4],
-                          [1,  4,    6,  4, 1]]) #Gaussian Blur 5x5
+#We make a list of kernels, callable by their names
+KernelNames = ['EdgeLapl-3x3', 'IEdgeLapl-3x3','Gauss-3x3', 'Gauss-5x5','Unsharp-5x5','BoxBlur-3x3','Sharpen-3x3']
+KM = []
+
+#Edge Laplacian = 'EdgeLapl-3x3':
+KM.append(np.array([       [0,  1, 0],
+                           [1, -4, 1], 
+                           [0,  1, 0]]))
+    
+#Inverse Edge Laplacian = 'IEdgeLapl-3x3':                    
+KM.append(np.array([       [-1, -1, -1],
+                           [-1,  8, -1], 
+                           [-1, -1, -1]]))
+#Gaussian Blur 3x3 = 'Gauss-3x3':
+KM.append(1/16*np.array([  [1, 2, 1],
+                           [2, 4, 2],
+                           [1, 2, 1]])) 
+#Gaussian Blur 5x5 = 'Gauss-5x5':
+KM.append(1/256*np.array([ [1,  4,  6,  4, 1],
+                           [4, 16, 24, 16, 4],
+                           [6, 24, 36, 24, 6],
+                           [4, 16, 24, 16, 4],
+                           [1,  4,  6,  4, 1]])) 
+#Unsharp Mask 5x5 == 'Unsharp-5x5':
+KM.append(-1/256*np.array([[1,  4,    6,  4, 1],
+                           [4, 16,   24, 16, 4],
+                           [6, 24, -476, 24, 6],
+                           [4, 16,   24, 16, 4],
+                           [1,  4,    6,  4, 1]])) 
+#Box Blur 3x3 = 'BoxBlur-3x3'
+KM.append(1/9*np.array([   [1,  1, 1],
+                           [1,  1, 1], 
+                           [1,  1, 1]]))
+#Sharpen 3x3  = 'Sharpen-3x3'
+KM.append(1/9*np.array([       [-1,  -1, -1],
+                           [-1,   9, -1], 
+                           [-1,  -1, -1]]))
+Kernel = {KernelNames[m]:KM[m] for m in range(len(KernelNames))}
+LO = Kernel[KernelMode]
 dLO = int(np.floor(len(LO)/2)); uLO = (len(LO) - dLO); 
+
 def s_transform(mask):
     s_map = []
     for x in range(mask.shape[0]):
@@ -122,7 +137,87 @@ def s_transform(mask):
     return(s_map)
 s_coord = s_transform(maskI)
 
-for repeats in range(10):
+
+
+class IMHandler(object):
+    def __init__(self,IMG,DPIX): #Initialise the damaged image
+        self.IMG  = [IMG]       # Original Image
+        self.DPIX = [DPIX]      # Damage Pixels applied to main image
+        try:
+            self.DMGI = [IMG*DPIX]
+        except:
+              print("\033[1;31;47m ERROR: IMG and DPIX dimensions do not match - please make an N*M mask the same size as the source image! \n")
+        self.MASK = []
+        self.FLTR = []
+        self.MODE = []
+        self.REP  = []
+        self.IMRES= [IMG]
+    def IMFLTR(self,MASK,FLTR,MODE,REP):
+        Dim = np.shape(self.DMGI[-1])
+        rowrange = Dim[0]; colrange = Dim[1]
+        LO = Kernel[FLTR]
+        dLO = int(np.floor(len(LO)/2)); uLO = (len(LO) - dLO); 
+
+        try:
+            #For the mirroring, we need three types - corner cuts (both), vertical cuts (column pixels only), vertical cuts (row pixels only)
+            mirrIB   = np.array([[self.DMGI[-1][row+1,col+1] for col in range(colrange-2)] for row in range(rowrange-2)]) #Then take the mirror plane to be [start+1:end-1]
+            mirrIV   = np.array([[self.DMGI[-1][row,col+1]   for col in range(colrange-2)] for row in range(rowrange  )])   #Vertical cut = column trimming
+            mirrIH   = np.array([[self.DMGI[-1][row+1,col]   for col in range(colrange  )] for row in range(rowrange-2)])   #Horizontal cut = row trimming
+            mirrDim = mirrIB.shape 
+            mirr    = mirrDim[0];  micr= mirrDim[1] #MIrror-Row-Range and MIrror-Column-Range - 
+            #We only need mirrIB.shape, because it's the only offset we need to know to for loop all of the damaged image for our recreation
+            
+            #Then, the damaged image is the full 3x3 matrix of correctly mirrored images, as to allow the kernel to sample corners and edges with no modification
+            #We use np.flip(mirrI,axis = 1) for Horizontal, and np.flip(axis = 0) for vertical - finally np.flip(mirrIB,axis=None) for both
+            #In order, row by row from top to bottom, we get:  both|vert|both:hor|ORIGINAL
+            TBR    = np.hstack((np.flip(mirrIB,axis = None), np.flip(mirrIH,0),np.flip(mirrIB,axis = None)))
+            MR     = np.hstack((np.flip(mirrIV,-1),self.DMGI[-1],np.flip(mirrIV,-1)))
+            dmgI   = np.vstack((TBR,MR,TBR))
+            for repeats in range(REP):
+                IMRES  = self.IMRES[-1].copy()
+                if MODE == 'FullImage':
+                    for row in range(mirr,mirr+rowrange):
+                        for col in range(micr,micr+colrange):
+                            IMRES[row-mirr][col-micr] = sum(sum(dmgI[row-dLO:row+uLO,col-dLO:col+uLO]*LO))
+    
+                if MODE == 'PixelsOnly':
+                    for pix in range(len(MASK)):
+                        row = MASK[pix][0]; col = MASK[pix][1]
+                        IMRES[row - mirr][col-micr] = sum(sum(dmgI[row-dLO:row+uLO,col-dLO:col+uLO]*LO))
+                self.DMGI.append(IMRES)
+                self.IMRES.append(IMRES)
+                mirrIB   = np.array([[IMRES[row+1,col+1] for col in range(colrange-2)] for row in range(rowrange-2)]) #Then take the mirror plane to be [start+1:end-1]
+                mirrIV   = np.array([[IMRES[row,col+1]   for col in range(colrange-2)] for row in range(rowrange  )])   #Vertical cut = column trimming
+                mirrIH   = np.array([[IMRES[row+1,col]   for col in range(colrange  )] for row in range(rowrange-2)])   #Horizontal cut = row trimming
+                TBR    = np.hstack((np.flip(mirrIB,axis = None), np.flip(mirrIH,0),np.flip(mirrIB,axis = None)))
+                MR     = np.hstack((np.flip(mirrIV,-1),IMRES,np.flip(mirrIV,-1)))
+                dmgI   = np.vstack((TBR,MR,TBR))
+        except:
+            print("\033[1;31;47m ERROR: Something went wrong - you need to input correct values for this to work! \n")
+
+I = IMHandler(original,mask)
+#I.IMFLTR(s_coord,'BoxBlur-3x3','FullImage',5)
+I.IMFLTR(s_coord,'Gauss-5x5' ,'PixelsOnly',5)
+
+
+#%%
+cols = 1
+
+plt.imshow(I.DMGI[0],cmap = 'gray')
+plt.show()
+for m in range(len(I.IMRES)):
+    plt.imshow(I.IMRES[m],cmap='gray')
+    plt.show()
+
+"""
+
+
+"""
+"""
+
+Legacy Code 2 - Has been moved into a class, still works as intended 
+
+for repeats in range(5):
     if SearchMode == 'FullImage':
         for row in range(mirr,mirr+rowrange):
             for col in range(micr,micr+colrange):
@@ -140,10 +235,11 @@ for repeats in range(10):
     MR     = np.hstack((np.flip(mirrIV,-1),IMRes,np.flip(mirrIV,-1)))
     dmgI   = np.vstack((TBR,MR,TBR))
 
-"""
-
-Legacy Code, which still uses corner and edge conditions - obsolete to the max, considering what we have now
+Legacy Code 1, which still uses corner and edge conditions - obsolete to the max, considering what we have now
 This code does not use a mirror matrix, and must use the mask image alone, which is NOT called dmgI anymore - to change
+
+
+
 
 
 Old correction Kernels:
@@ -188,8 +284,6 @@ for row in range(rowrange):
                 IMRes[row][col] = sum(sum(dmgI[row-1:row+2,col-1:col+2]*LO[0:3,0:3]))   
         else:
             IMRes[row][col] = dmgI[row][col]
-"""      
-
 
 plt.figure()
 plt.imshow(IMRes, cmap='gray')
@@ -201,3 +295,4 @@ plt.show()
 IMDiff = -abs(original - IMRes)
 plt.figure()
 plt.imshow(IMDiff,cmap='gray')
+"""
