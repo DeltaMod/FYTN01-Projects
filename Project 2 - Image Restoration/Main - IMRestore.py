@@ -47,7 +47,7 @@ original = imread('EM_ScreamGS_lowres.bmp')[:,:,0]
 Dim   = original.shape
 rowrange = Dim[0]; colrange = Dim[1]
 
-mask = imread('mask_lowres2.bmp')[:,:,0]/255
+mask = imread('mask_lowres4.bmp')[:,:,0]/255
 plt.figure()
 plt.imshow(original, cmap='gray')
 plt.title('Original Image')
@@ -220,8 +220,7 @@ class IMHandler(object):
 
 I = IMHandler(original,mask)
 #I.IMFLTR(s_coord,'BoxBlur-3x3','FullImage',5)
-I.IMFLTR(s_coord,'Gauss-5x5' ,'FFTConvolveCut',6)
-
+I.IMFLTR(s_coord,'Gauss-5x5' ,'FFTConvolveCut',1)
 
 #%%
 cols = 1
