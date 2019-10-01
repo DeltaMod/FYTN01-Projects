@@ -37,6 +37,7 @@ the methods available in the literature (see [3]-[6]). Or, even better, come up 
 some method of your own!
 """
 from matplotlib.pyplot import imread
+from scipy.signal import fftconvolve as FFTCONV2
 import matplotlib.pyplot as plt
 import numpy as np
 plt.rcParams['figure.dpi']   = 200
@@ -85,7 +86,7 @@ IMRes = maskI #Initialise size of "restored image"
 
 h = 1 #Lattice Parameter 
 KernelMode = 'Gauss-5x5'     # EdgeLapl|IEdgeLapl|Gauss-3x3|Gauss-5x5|Unsharp-5x5
-SearchMode = 'PixelsOnly'    # FullImage|PixelsOnly
+SearchMode = 'FFTCONV'    # FullImage|PixelsOnly
 
 #We make a list of kernels, callable by their names
 KernelNames = ['EdgeLapl-3x3', 'IEdgeLapl-3x3','Gauss-3x3', 'Gauss-5x5','Unsharp-5x5','BoxBlur-3x3','Sharpen-3x3']
@@ -158,46 +159,48 @@ class IMHandler(object):
         LO = Kernel[FLTR]
         dLO = int(np.floor(len(LO)/2)); uLO = (len(LO) - dLO); 
 
-        try:
+        #try:
             #For the mirroring, we need three types - corner cuts (both), vertical cuts (column pixels only), vertical cuts (row pixels only)
-            mirrIB   = np.array([[self.DMGI[-1][row+1,col+1] for col in range(colrange-2)] for row in range(rowrange-2)]) #Then take the mirror plane to be [start+1:end-1]
-            mirrIV   = np.array([[self.DMGI[-1][row,col+1]   for col in range(colrange-2)] for row in range(rowrange  )])   #Vertical cut = column trimming
-            mirrIH   = np.array([[self.DMGI[-1][row+1,col]   for col in range(colrange  )] for row in range(rowrange-2)])   #Horizontal cut = row trimming
-            mirrDim = mirrIB.shape 
-            mirr    = mirrDim[0];  micr= mirrDim[1] #MIrror-Row-Range and MIrror-Column-Range - 
-            #We only need mirrIB.shape, because it's the only offset we need to know to for loop all of the damaged image for our recreation
-            
-            #Then, the damaged image is the full 3x3 matrix of correctly mirrored images, as to allow the kernel to sample corners and edges with no modification
-            #We use np.flip(mirrI,axis = 1) for Horizontal, and np.flip(axis = 0) for vertical - finally np.flip(mirrIB,axis=None) for both
-            #In order, row by row from top to bottom, we get:  both|vert|both:hor|ORIGINAL
+        mirrIB   = np.array([[self.DMGI[-1][row+1,col+1] for col in range(colrange-2)] for row in range(rowrange-2)]) #Then take the mirror plane to be [start+1:end-1]
+        mirrIV   = np.array([[self.DMGI[-1][row,col+1]   for col in range(colrange-2)] for row in range(rowrange  )])   #Vertical cut = column trimming
+        mirrIH   = np.array([[self.DMGI[-1][row+1,col]   for col in range(colrange  )] for row in range(rowrange-2)])   #Horizontal cut = row trimming
+        mirrDim = mirrIB.shape 
+        mirr    = mirrDim[0];  micr= mirrDim[1] #MIrror-Row-Range and MIrror-Column-Range - 
+        #We only need mirrIB.shape, because it's the only offset we need to know to for loop all of the damaged image for our recreation
+        
+        #Then, the damaged image is the full 3x3 matrix of correctly mirrored images, as to allow the kernel to sample corners and edges with no modification
+        #We use np.flip(mirrI,axis = 1) for Horizontal, and np.flip(axis = 0) for vertical - finally np.flip(mirrIB,axis=None) for both
+        #In order, row by row from top to bottom, we get:  both|vert|both:hor|ORIGINAL
+        TBR    = np.hstack((np.flip(mirrIB,axis = None), np.flip(mirrIH,0),np.flip(mirrIB,axis = None)))
+        MR     = np.hstack((np.flip(mirrIV,-1),self.DMGI[-1],np.flip(mirrIV,-1)))
+        dmgI   = np.vstack((TBR,MR,TBR))
+        for repeats in range(REP):
+            IMRES  = self.IMRES[-1].copy()
+            if MODE == 'FullImage':
+                for row in range(mirr,mirr+rowrange):
+                    for col in range(micr,micr+colrange):
+                        IMRES[row-mirr][col-micr] = sum(sum(dmgI[row-dLO:row+uLO,col-dLO:col+uLO]*LO))
+            if MODE == 'FFTConvolve':
+                CONV = FFTCONV2(dmgI,LO,'same')
+                IMRES = CONV[mirr:mirr+rowrange,micr:micr+colrange]
+            if MODE == 'PixelsOnly':
+                for pix in range(len(MASK)):
+                    row = MASK[pix][0]; col = MASK[pix][1]
+                    IMRES[row - mirr][col-micr] = sum(sum(dmgI[row-dLO:row+uLO,col-dLO:col+uLO]*LO))
+            self.DMGI.append(IMRES)
+            self.IMRES.append(IMRES)
+            mirrIB   = np.array([[IMRES[row+1,col+1] for col in range(colrange-2)] for row in range(rowrange-2)]) #Then take the mirror plane to be [start+1:end-1]
+            mirrIV   = np.array([[IMRES[row,col+1]   for col in range(colrange-2)] for row in range(rowrange  )])   #Vertical cut = column trimming
+            mirrIH   = np.array([[IMRES[row+1,col]   for col in range(colrange  )] for row in range(rowrange-2)])   #Horizontal cut = row trimming
             TBR    = np.hstack((np.flip(mirrIB,axis = None), np.flip(mirrIH,0),np.flip(mirrIB,axis = None)))
-            MR     = np.hstack((np.flip(mirrIV,-1),self.DMGI[-1],np.flip(mirrIV,-1)))
+            MR     = np.hstack((np.flip(mirrIV,-1),IMRES,np.flip(mirrIV,-1)))
             dmgI   = np.vstack((TBR,MR,TBR))
-            for repeats in range(REP):
-                IMRES  = self.IMRES[-1].copy()
-                if MODE == 'FullImage':
-                    for row in range(mirr,mirr+rowrange):
-                        for col in range(micr,micr+colrange):
-                            IMRES[row-mirr][col-micr] = sum(sum(dmgI[row-dLO:row+uLO,col-dLO:col+uLO]*LO))
-    
-                if MODE == 'PixelsOnly':
-                    for pix in range(len(MASK)):
-                        row = MASK[pix][0]; col = MASK[pix][1]
-                        IMRES[row - mirr][col-micr] = sum(sum(dmgI[row-dLO:row+uLO,col-dLO:col+uLO]*LO))
-                self.DMGI.append(IMRES)
-                self.IMRES.append(IMRES)
-                mirrIB   = np.array([[IMRES[row+1,col+1] for col in range(colrange-2)] for row in range(rowrange-2)]) #Then take the mirror plane to be [start+1:end-1]
-                mirrIV   = np.array([[IMRES[row,col+1]   for col in range(colrange-2)] for row in range(rowrange  )])   #Vertical cut = column trimming
-                mirrIH   = np.array([[IMRES[row+1,col]   for col in range(colrange  )] for row in range(rowrange-2)])   #Horizontal cut = row trimming
-                TBR    = np.hstack((np.flip(mirrIB,axis = None), np.flip(mirrIH,0),np.flip(mirrIB,axis = None)))
-                MR     = np.hstack((np.flip(mirrIV,-1),IMRES,np.flip(mirrIV,-1)))
-                dmgI   = np.vstack((TBR,MR,TBR))
-        except:
-            print("\033[1;31;47m ERROR: Something went wrong - you need to input correct values for this to work! \n")
+        #except:
+         #   print("\033[1;31;47m ERROR: Something went wrong - you need to input correct values for this to work! \n")
 
 I = IMHandler(original,mask)
 #I.IMFLTR(s_coord,'BoxBlur-3x3','FullImage',5)
-I.IMFLTR(s_coord,'Gauss-5x5' ,'PixelsOnly',5)
+I.IMFLTR(s_coord,'Gauss-5x5' ,'FFTConvolve',5)
 
 
 #%%
@@ -209,10 +212,11 @@ for m in range(len(I.IMRES)):
     plt.imshow(I.IMRES[m],cmap='gray')
     plt.show()
 
-"""
+## Error Calculation (compare original to filtered image)
 
-
-"""
+IMDiff = -abs(original - I.IMRES[-1])
+plt.figure()
+plt.imshow(IMDiff,cmap='gray')
 """
 
 Legacy Code 2 - Has been moved into a class, still works as intended 
@@ -290,9 +294,5 @@ plt.imshow(IMRes, cmap='gray')
 plt.title('Restored Image?')
 plt.show()
 
-## Error Calculation (compare original to filtered image)
 
-IMDiff = -abs(original - IMRes)
-plt.figure()
-plt.imshow(IMDiff,cmap='gray')
 """
