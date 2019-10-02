@@ -267,15 +267,17 @@ cols = 1
 
 plt.imshow(I.DMGI[0],cmap = 'gray')
 plt.show()
+plt.title('Original Image')
 for m in range(len(I.IMRES)):
     plt.imshow(I.IMRES[m],cmap='gray')
     plt.show()
+    plt.title('Repair Iteration '+str(m))
 
 #%% Error Calculation (compare original to filtered image)
 
 IMDiff = (-1-abs(original - I.IMRES[-1]))
-plt.figure()
 plt.imshow(IMDiff,cmap='gray')
+plt.title('Difference Between Original and Repaired')
 
 SCORE = np.sum(np.abs(I.IMRES[-1]-original))/np.count_nonzero(I.IMRES[-1]-original)/(np.sum(np.abs(maskI - original))/np.count_nonzero(maskI-original))
 print('\n The numbers are in! \n The average pixel difference in the graffiti`d image is: ' +str((np.sum(np.abs(maskI - original))/np.count_nonzero(maskI-original))))
