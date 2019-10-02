@@ -23,3 +23,26 @@ Features:
 + Waning Immunity
 + Daily commuter weighting
 + Single, Predefined, and N number of random cities that can be run with these conditions
+
+                                                                                                                      
+                       ___ ___  ___     _ ___ ___ _____   ___                           
+                    | _ \ _ \/ _ \ _ | | __/ __|_   _| |_  )                          
+                    |  _/   / (_) | || | _| (__  | |    / /                           
+                    |_| |_|_\\___/ \__/|___\___| |_|   /___|                          
+  ___ __  __   _   ___ ___   ___ ___ ___ _____ ___  ___    _ _____ ___ ___  _  _      
+ |_ _|  \/  | /_\ / __| __| | _ \ __/ __|_   _/ _ \| _ \  /_\_   _|_ _/ _ \| \| |     
+  | || |\/| |/ _ \ (_ | _|  |   / _|\__ \ | || (_) |   / / _ \| |  | | (_) | .` |     
+ |___|_|  |_/_/ \_\___|___| |_|_\___|___/ |_| \___/|_|_\/_/ \_\_| |___\___/|_|\_|     
+  ___ ___ ___ ___ ___ ___ ___ ___ ___ ___ ___ ___ ___ ___ ___ ___ ___ ___ ___ ___ ___ 
+ |___|___|___|___|___|___|___|___|___|___|___|___|___|___|___|___|___|___|___|___|___|
+ |___|___|___|___|___|___|___|___|___|___|___|___|___|___|___|___|___|___|___|___|___|
+                                                                                      
+ Located in FYTN03-Projects/Project 2 - Image Restoration
+ We have two main files:
++ P2-FirstApproach.py - Which contains a standard the Laplacian implementation of image restoration
++ Main - IMRestore.py - Which contains several different implementations of image convolution filters.
+                        Currently, the default 3x3-Gauss followed by 5x5-Gauss patches up the image pretty well
+                        (you can run it for longer for better results)
+                        The code contains a real space convolution, as well as full image convolution in frequency space,
+                        AND a sectioned method that handles only the pixels surrounding the max!
+               
