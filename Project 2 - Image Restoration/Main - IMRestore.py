@@ -8,7 +8,8 @@
     |  |        |___|   |__|  |_____||  ||_____||____||____|      |___|  |________||_____|        |  |                
     |__|                            |___|                                                         |__|                
  ______  ______  ______  ______  ______  ______  ______  ______  ______  ______  ______  ______  ______               
-|______||______||______||______||______||______||______||______||______||______||______||______||______|              
+|______||______||______||______||______||______||______||______||______||______||______||______||______|           
+   
                                                                                                                       
                                                                                                           
 1 - Download Greyscale image (We converted a colour .jpeg to a greyscale .bmp file)
@@ -40,29 +41,72 @@ from matplotlib.pyplot import imread
 from scipy.signal import fftconvolve as FFTCONV2
 import matplotlib.pyplot as plt
 import numpy as np
+"""
+    ____                  __     __  __                                        __  _                     __                   __
+   /  _/___  ____  __  __/ /_   / /_/ /_  ___     ____  ____  ___  _________ _/ /_(_)___  ____  _____   / /_  ___  ________  / /
+   / // __ \/ __ \/ / / / __/  / __/ __ \/ _ \   / __ \/ __ \/ _ \/ ___/ __ `/ __/ / __ \/ __ \/ ___/  / __ \/ _ \/ ___/ _ \/ / 
+ _/ // / / / /_/ / /_/ / /_   / /_/ / / /  __/  / /_/ / /_/ /  __/ /  / /_/ / /_/ / /_/ / / / (__  )  / / / /  __/ /  /  __/_/  
+/___/_/ /_/ .___/\__,_/\__/   \__/_/ /_/\___/   \____/ .___/\___/_/   \__,_/\__/_/\____/_/ /_/____/  /_/ /_/\___/_/   \___(_)   
+         /_/                                        /_/                                                                        
+The format is: OPERATIONS = ['FILTER','MODE',Repetitions] - Add as many as you want in the given formatm, just add another row and you're good to go!
+"""
+
+OPERATIONS = [['Gauss-3x3','FFTConvolveCut',4],
+              ['Gauss-5x5','FFTConvolveCut',4],]
+
+
+"""
+MODE available:
+    'PixelsOnly'     - Standard for loop to do a mask-defined pixel-by-pixel image convolution
+    'FullImage'      - Applies a filter over the ENTIRE IMAGE (SLOW)
+    'FFTConvolve'    - Converts image into frequency domain, then multiplies it with the image kernel (Faster than FullImage) 
+    'FFTConvolveCut' - Cuts out an area around the mask, does FFTCONVOLVE, then transforms it back and adds the change to the image
+    'MedianFilter':  - Doesn't need a "FILTER" - it does what it says on the tin
+
+FILTER available:
+    'EdgeLapl-3x3'   - Laplacian edge finder, 3x3 
+    'IEdgeLapl-3x3'  - Inverse laplacian edge finder, 3x3
+    'Gauss-3x3'      - Gaussian kernel, 3x3
+    'Gauss-5x5'      - Gaussian kernel, 5x5
+    'Unsharp-5x5'    - Unsharp filter, 5x5
+    'BoxBlur-3x3'    - Average value filter, 3x3
+    'Sharpen-3x3'    - Sharpen filter (STRONG), 3x3
+    
+
+
+I = IMHandler(original,mask)
+I.IMFLTR(s_coord,'Gauss-5x5' ,'FFTConvolveCut',7)
+
+"""
+
+
 plt.rcParams['figure.dpi']   = 200
 plt.rcParams['axes.grid'] = False
 
-original = imread('EM_ScreamGS_lowres.bmp')[:,:,0]
+#Read in and determine the dimensions of the image
+original = imread('EM_ScreamGS_lowres.bmp')[:,:,0] #Available Images: EM_ScreamGS_lowres.bmp
 Dim   = original.shape
 rowrange = Dim[0]; colrange = Dim[1]
 
-mask = imread('mask_lowres4.bmp')[:,:,0]/255
+#Read in and plot the mask
+mask = imread('mask_lowres2.bmp')[:,:,0]/255 #Available Masks: mask_lowres|mask_lowres2|mask_lowres3|mask_lowres4|mask_noise
 plt.figure()
 plt.imshow(original, cmap='gray')
 plt.title('Original Image')
 plt.show()
 
-##
+## Pre-plot damaged image
 plt.figure()
 plt.imshow(mask, cmap='gray')
 plt.title('Mask')
 plt.show()
 
-##
-maskI    = original*mask                                                                             #We make the original image
+## Since we're using convolusion kernels, we're expecting to see a reduction in the size  of the image for each iteration unless we do something about it.
+#We take the image, mirror it in all axes around itself, and let the convolution happen only in the "image plane" where edge quality is preserved
+
+maskI    = original*mask  #We make the original damaged image
 #For the mirroring, we need three types - corner cuts (both), vertical cuts (column pixels only), vertical cuts (row pixels only)
-mirrIB   = np.array([[maskI[row+1,col+1] for col in range(colrange-2)] for row in range(rowrange-2)]) #Then take the mirror plane to be [start+1:end-1]
+mirrIB   = np.array([[maskI[row+1,col+1] for col in range(colrange-2)] for row in range(rowrange-2)])   #Then take the mirror plane to be [start+1:end-1]
 mirrIV   = np.array([[maskI[row,col+1]   for col in range(colrange-2)] for row in range(rowrange  )])   #Vertical cut = column trimming
 mirrIH   = np.array([[maskI[row+1,col]   for col in range(colrange  )] for row in range(rowrange-2)])   #Horizontal cut = row trimming
 
@@ -84,11 +128,7 @@ plt.show()
 
 IMRes = maskI #Initialise size of "restored image"
 
-h = 1 #Lattice Parameter 
-KernelMode = 'Gauss-5x5'     # EdgeLapl|IEdgeLapl|Gauss-3x3|Gauss-5x5|Unsharp-5x5
-SearchMode = 'FFTCONV'    # FullImage|PixelsOnly
-
-#We make a list of kernels, callable by their names
+#We make a list of kernels, callable by their names - 
 KernelNames = ['EdgeLapl-3x3', 'IEdgeLapl-3x3','Gauss-3x3', 'Gauss-5x5','Unsharp-5x5','BoxBlur-3x3','Sharpen-3x3']
 KM = []
 
@@ -125,21 +165,21 @@ KM.append(1/9*np.array([   [1,  1, 1],
 KM.append(1/9*np.array([       [-1,  -1, -1],
                            [-1,   9, -1], 
                            [-1,  -1, -1]]))
+#We then stick all of these into a neat dictionary for later use!
 Kernel = {KernelNames[m]:KM[m] for m in range(len(KernelNames))}
-LO = Kernel[KernelMode]
-dLO = int(np.floor(len(LO)/2)); uLO = (len(LO) - dLO); 
 
+
+#%% Used to extract the coordinates of the mask (this can be set to detect noise that isn't zero)
 def s_transform(mask):
     s_map = []
     for x in range(mask.shape[0]):
         for y in range(mask.shape[1]):
-            if mask[x,y] == 0:
+            if mask[x,y] < 1:
                 s_map.append([x+mirr,y+micr])
     return(s_map)
 s_coord = s_transform(maskI)
 
-
-
+#%% Our IMHandler class allows for any nomber of consecutive codes to be run
 class IMHandler(object):
     def __init__(self,IMG,DPIX): #Initialise the damaged image
         self.IMG  = [IMG]       # Original Image
@@ -219,8 +259,8 @@ class IMHandler(object):
          #   print("\033[1;31;47m ERROR: Something went wrong - you need to input correct values for this to work! \n")
 
 I = IMHandler(original,mask)
-#I.IMFLTR(s_coord,'BoxBlur-3x3','FullImage',5)
-I.IMFLTR(s_coord,'Gauss-5x5' ,'FFTConvolveCut',1)
+for m in range(len(OPERATIONS)):
+    I.IMFLTR(s_coord,OPERATIONS[m][0],OPERATIONS[m][1],OPERATIONS[m][2])
 
 #%%
 cols = 1
@@ -231,12 +271,32 @@ for m in range(len(I.IMRES)):
     plt.imshow(I.IMRES[m],cmap='gray')
     plt.show()
 
-## Error Calculation (compare original to filtered image)
+#%% Error Calculation (compare original to filtered image)
 
 IMDiff = (-1-abs(original - I.IMRES[-1]))
 plt.figure()
 plt.imshow(IMDiff,cmap='gray')
+
+SCORE = np.sum(np.abs(I.IMRES[-1]-original))/np.count_nonzero(I.IMRES[-1]-original)/(np.sum(np.abs(maskI - original))/np.count_nonzero(maskI-original))
+print('\n The numbers are in! \n The average pixel difference in the graffiti`d image is: ' +str((np.sum(np.abs(maskI - original))/np.count_nonzero(maskI-original))))
+print('\n The average pixel difference in the repaired image is: ' +str(np.sum(np.abs(I.IMRES[-1]-original))/np.count_nonzero(I.IMRES[-1]-original)))
+print('\n The ratio of average pixel difference between the mask is = '+str(SCORE)+' \n A lower number is better!')
+
+if SCORE>1:
+    print("\033[1;31;47m Are you trying to mess the image up or something? The you're not supposed to be aiming for a high score :(")
+
 """
+Legacy Code 3 - #%% This filter does not work - We'd need a better method of identifying where the dead pixels are, and we likely need to evaulate it each iteration to determine if we are done.
+experimentalfilter = 0 
+if experimentalfilter == 1:
+    DIFFIMGx = np.power(np.flip(np.rot90(np.diff([dmgI[:,m] for m in range(dmgI.shape[1])]),3),-1),2)
+    DIFFIMGy = np.power(np.diff([dmgI[m,:] for m in range(dmgI.shape[0])]),2)
+    DIFFIMG =  DIFFIMGx[mirr-1:mirr+rowrange,micr-1:micr+colrange]+DIFFIMGy[mirr-1:mirr+rowrange,micr-1:micr+colrange]
+    DIFFIMG[DIFFIMG>0.6] = 1
+    DIFFIMG[DIFFIMG<=0.6] = 0
+    maskI = DIFFIMG
+    plt.imshow(DIFFIMG,cmap = 'gray')
+
 
 Legacy Code 2 - Has been moved into a class, still works as intended 
 
