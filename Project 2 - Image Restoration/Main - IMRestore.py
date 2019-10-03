@@ -51,8 +51,8 @@ import numpy as np
 The format is: OPERATIONS = ['FILTER','MODE',Repetitions] - Add as many as you want in the given formatm, just add another row and you're good to go!
 """
 
-OPERATIONS = [['Gauss-3x3','FFTConvolveCut',4],
-              ['Gauss-5x5','FFTConvolveCut',4],]
+OPERATIONS = [['Gauss-3x3','FullImage',1]]
+              #['Gauss-5x5','FFTConvolveCut',0],]
 
 
 """
@@ -80,7 +80,7 @@ I.IMFLTR(s_coord,'Gauss-5x5' ,'FFTConvolveCut',7)
 """
 
 
-plt.rcParams['figure.dpi']   = 200
+plt.rcParams['figure.dpi']   = 500
 plt.rcParams['axes.grid'] = False
 
 #Read in and determine the dimensions of the image
@@ -377,3 +377,34 @@ plt.show()
 
 
 """
+
+#%%Short code to show off convolutions:
+PLOTTER = 0
+if plotter == 1
+    A = I.DMGI[1]
+    B = I.IMG[0]
+    
+    A[0,:] = B[0,:]
+    A[:,0] = B[:,0]
+    C = KM[0]
+    m = 0
+    D = C[0:3,0:3]*B[m:m+3,m:m+3]
+    
+    E = [np.sum(D)]
+    
+    BadIm = []
+    for m in range(100):
+        IMT = I.IMRES[m].copy()
+        IMT[0:m,:] = 0;  IMT[:,colrange-m:colrange] = 0
+        IMT[:,0:m] = 0;  IMT[rowrange-m:rowrange,:] = 0
+        BadIm.append(IMT[:,:])
+        cmap = plt.cm.gray
+        norm = plt.Normalize(vmin=np.min(BadIm[m]), vmax=np.max(BadIm[m]))
+        image = cmap(norm(BadIm[m]))
+        plt.imsave('ImageFrames/ConvProb'+str(m)+'.png', image)
+
+
+# map the normalized data to colors
+# image is now RGBA (512x512x4) 
+
+# save the image
