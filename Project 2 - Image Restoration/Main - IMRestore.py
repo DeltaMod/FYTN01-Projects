@@ -41,6 +41,7 @@ from matplotlib.pyplot import imread
 from scipy.signal import fftconvolve as FFTCONV2
 import matplotlib.pyplot as plt
 import numpy as np
+import cv2 #run pip install opencv-python
 """
     ____                  __     __  __                                        __  _                     __                   __
    /  _/___  ____  __  __/ /_   / /_/ /_  ___     ____  ____  ___  _________ _/ /_(_)___  ____  _____   / /_  ___  ________  / /
@@ -51,10 +52,12 @@ import numpy as np
 The format is: OPERATIONS = ['FILTER','MODE',Repetitions] - Add as many as you want in the given formatm, just add another row and you're good to go!
 """
 
-showIterations = True
+showIterations = False
 
-OPERATIONS = [['Gauss-3x3','FFTConvolveCut',4],
-              ['Gauss-5x5','FFTConvolveCut',4],]
+#OPERATIONS = [['Gauss-3x3','FFTConvolveCut',4],
+#              ['Gauss-5x5','FFTConvolveCut',4],]
+
+OPERATIONS = [['Gauss-3x3','PixelsOnly',20]]
 
 
 
@@ -83,7 +86,7 @@ I.IMFLTR(s_coord,'Gauss-5x5' ,'FFTConvolveCut',7)
 """
 
 
-plt.rcParams['figure.dpi']   = 500
+plt.rcParams['figure.dpi']   = 200
 plt.rcParams['axes.grid'] = False
 
 #Read in and determine the dimensions of the image
@@ -294,9 +297,9 @@ plt.imshow(IMDiff,cmap='gray')
 plt.title('Difference Between Original and Repaired')
 plt.show()
 
-SCORE = np.sum(np.abs(I.IMRES[-1]-original))/np.count_nonzero(I.IMRES[-1]-original)/(np.sum(np.abs(maskI - original))/np.count_nonzero(maskI-original))
+SCORE = np.sum(np.abs(I.IMRES[-1]-original))/np.count_nonzero(maskI[-1]-original)/(np.sum(np.abs(maskI - original))/np.count_nonzero(maskI-original))
 print('\n The numbers are in! \n The average pixel difference in the graffiti`d image is: ' +str((np.sum(np.abs(maskI - original))/np.count_nonzero(maskI-original))))
-print('\n The average pixel difference in the repaired image is: ' +str(np.sum(np.abs(I.IMRES[-1]-original))/np.count_nonzero(I.IMRES[-1]-original)))
+print('\n The average pixel difference in the repaired image is: ' +str(np.sum(np.abs(I.IMRES[-1]-original))/np.count_nonzero(maskI[-1]-original)))
 print('\n The ratio of average pixel difference between the mask is = '+str(SCORE)+' \n A lower number is better!')
 
 if SCORE>1:
@@ -395,8 +398,9 @@ plt.show()
 
 
 #%%Short code to show off convolutions:
-PLOTTER = 0
+PLOTTER = 1
 if PLOTTER == 1:
+    imexp = 'MaskAndDiff'
     A = I.DMGI[1]
     B = I.IMG[0]
     
@@ -407,18 +411,60 @@ if PLOTTER == 1:
     D = C[0:3,0:3]*B[m:m+3,m:m+3]
     
     E = [np.sum(D)]
+    if imexp == 'BadIm':
+        BadIm = []
+        for m in range(OPERATIONS[0][2]):
+            IMT = I.IMRES[m].copy()
+            IMT[0:m,:] = 0;  IMT[:,colrange-m:colrange] = 0
+            IMT[:,0:m] = 0;  IMT[rowrange-m:rowrange,:] = 0
+            BadIm.append(IMT[:,:])
+            cmap = plt.cm.gray
+            norm = plt.Normalize(vmin=np.min(BadIm[m]), vmax=np.max(BadIm[m]))
+            image = cmap(norm(BadIm[m]))
+            plt.imsave('ImageFrames/ConvProb'+str(m)+'.png', image)
     
-    BadIm = []
-    for m in range(100):
-        IMT = I.IMRES[m].copy()
-        IMT[0:m,:] = 0;  IMT[:,colrange-m:colrange] = 0
-        IMT[:,0:m] = 0;  IMT[rowrange-m:rowrange,:] = 0
-        BadIm.append(IMT[:,:])
-        cmap = plt.cm.gray
-        norm = plt.Normalize(vmin=np.min(BadIm[m]), vmax=np.max(BadIm[m]))
-        image = cmap(norm(BadIm[m]))
-        plt.imsave('ImageFrames/ConvProb'+str(m)+'.png', image)
-
+    #We define a colourmap to keep the same pixel value range for all plots
+    cmap    = plt.cm.gray
+    norm    = plt.Normalize(vmin=0, vmax=256)
+    normdif = plt.Normalize(vmin=0, vmax=256) 
+    
+    
+    ResIm  = []; ResIm.append(I.IMG[0]*I.DPIX[0]); imageres = cmap(norm(ResIm[0]))
+    ImDiff = []
+    IMCOMPARISON = []
+    ImDiff.append(255*np.ones((rowrange,colrange)))
+    
+    for pix in range(len(s_coord)):
+            row = s_coord[pix][0]-mirr; col = s_coord[pix][1]-micr
+            ImDiff[0][row][col] = 255-np.abs(I.DPIX[0][row][col]*I.IMG[0][row,col]-I.IMG[0][row,col])
+    imagediff= cmap(normdif(ImDiff[0]))
+    plt.imsave('ImageFrames/'+OPERATIONS[0][0]+'Res'+str(0)+'.png', imageres)
+    plt.imsave('ImageFrames/'+OPERATIONS[0][0]+'Dif'+str(0)+'.png', imagediff)
+    if imexp == 'MaskAndDiff':
+        for m in range(1,OPERATIONS[0][2]):
+            IMT      = I.IMRES[m].copy()
+            EMPTY = 255*np.ones((rowrange,colrange))
+            EMPTY[0,0] = 255
+            for pix in range(len(s_coord)):
+                row = s_coord[pix][0]-mirr; col = s_coord[pix][1]-micr
+                EMPTY[row,col] = 255-np.abs(int(IMT[row,col])-int(I.IMG[0][row,col]))
+            ImDiff.append(EMPTY)
+            ResIm.append(IMT[:,:])
+        for m in range(0,OPERATIONS[0][2]):
+            HorStack = np.hstack((ResIm[m],ImDiff[m]))
+            VertPad = 255*np.ones((50,HorStack.shape[1]))
+            IMCOMPARISON.append(np.vstack((VertPad,HorStack)))
+            imagecat = cmap(norm(IMCOMPARISON[m]))
+            imageres = cmap(norm(ResIm[m]))
+            imagediff= cmap(normdif(ImDiff[m]))
+            plt.imsave('ImageFrames/'+OPERATIONS[0][0]+'Res'+str(m)+'.png', imageres)
+            plt.imsave('ImageFrames/'+OPERATIONS[0][0]+'Dif'+str(m)+'.png', imagediff)
+            plt.imsave('ImageFrames/'+OPERATIONS[0][0]+'ResDif'+str(m)+'.png', imagecat)
+        for m in range(0,OPERATIONS[0][2]):
+            image = cv2.imread('ImageFrames/'+OPERATIONS[0][0]+'ResDif'+str(m)+'.png')  
+            texted_image =cv2.putText(img=np.copy(image), text="Repair Iteration"+str(m), org=(20,20),fontFace=3, fontScale=1, color=(0,0,0), thickness=3)
+            plt.imshow(texted_image)
+            plt.show()
 
 # map the normalized data to colors
 # image is now RGBA (512x512x4) 
