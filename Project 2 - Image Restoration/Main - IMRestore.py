@@ -51,8 +51,12 @@ import numpy as np
 The format is: OPERATIONS = ['FILTER','MODE',Repetitions] - Add as many as you want in the given formatm, just add another row and you're good to go!
 """
 
-OPERATIONS = [['Gauss-3x3','FullImage',1]]
-              #['Gauss-5x5','FFTConvolveCut',0],]
+
+showIterations = True
+
+OPERATIONS = [['Gauss-3x3','FFTConvolveCut',4],
+              ['Gauss-5x5','FFTConvolveCut',4],]
+
 
 
 """
@@ -265,19 +269,31 @@ for m in range(len(OPERATIONS)):
 #%%
 cols = 1
 
+plt.figure()
 plt.imshow(I.DMGI[0],cmap = 'gray')
+plt.title('Image before restoration')
 plt.show()
-plt.title('Original Image')
-for m in range(len(I.IMRES)):
-    plt.imshow(I.IMRES[m],cmap='gray')
+
+if showIterations :
+    for m in range(1, len(I.IMRES)):
+        plt.figure()
+        plt.imshow(I.IMRES[m],cmap='gray')
+        plt.title('Repair Iteration '+str(m))
+        plt.show()
+else :
+    plt.figure()
+    plt.imshow(I.IMRES[-1],cmap='gray')
+    plt.title('Repair Iteration '+str(len(I.IMRES)))
     plt.show()
-    plt.title('Repair Iteration '+str(m))
+
 
 #%% Error Calculation (compare original to filtered image)
 
 IMDiff = (-1-abs(original - I.IMRES[-1]))
+plt.figure()
 plt.imshow(IMDiff,cmap='gray')
 plt.title('Difference Between Original and Repaired')
+plt.show()
 
 SCORE = np.sum(np.abs(I.IMRES[-1]-original))/np.count_nonzero(I.IMRES[-1]-original)/(np.sum(np.abs(maskI - original))/np.count_nonzero(maskI-original))
 print('\n The numbers are in! \n The average pixel difference in the graffiti`d image is: ' +str((np.sum(np.abs(maskI - original))/np.count_nonzero(maskI-original))))
@@ -377,6 +393,7 @@ plt.show()
 
 
 """
+
 
 #%%Short code to show off convolutions:
 PLOTTER = 0
