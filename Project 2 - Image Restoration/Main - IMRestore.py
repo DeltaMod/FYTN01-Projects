@@ -42,6 +42,7 @@ from scipy.signal import fftconvolve as FFTCONV2
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2 #run pip install opencv-python
+import time 
 """
     ____                  __     __  __                                        __  _                     __                   __
    /  _/___  ____  __  __/ /_   / /_/ /_  ___     ____  ____  ___  _________ _/ /_(_)___  ____  _____   / /_  ___  ________  / /
@@ -200,6 +201,7 @@ class IMHandler(object):
         self.REP  = []
         self.IMRES= [IMG]
         self.MSKCU= []
+        self.TCALC= []
     def IMFLTR(self,MASK,FLTR,MODE,REP):
         Dim = np.shape(self.DMGI[-1])
         rowrange = Dim[0]; colrange = Dim[1]
@@ -223,6 +225,7 @@ class IMHandler(object):
         MR     = np.hstack((np.flip(mirrIV,-1),self.DMGI[-1],np.flip(mirrIV,-1)))
         dmgI   = np.vstack((TBR,MR,TBR))
         for repeats in range(REP):  
+            tstart = time.time()
             IMRES  = self.IMRES[-1].copy()
             if MODE == 'FullImage':
                 for row in range(mirr,mirr+rowrange):
@@ -263,7 +266,8 @@ class IMHandler(object):
             dmgI   = np.vstack((TBR,MR,TBR))
         #except:
          #   print("\033[1;31;47m ERROR: Something went wrong - you need to input correct values for this to work! \n")
-
+            tend = time.time()
+            self.TCALC.append(tend-tstart)
 I = IMHandler(original,mask)
 for m in range(len(OPERATIONS)):
     I.IMFLTR(s_coord,OPERATIONS[m][0],OPERATIONS[m][1],OPERATIONS[m][2])
@@ -460,9 +464,14 @@ if PLOTTER == 1:
             plt.imsave('ImageFrames/'+OPERATIONS[0][0]+'Res'+str(m)+'.png', imageres)
             plt.imsave('ImageFrames/'+OPERATIONS[0][0]+'Dif'+str(m)+'.png', imagediff)
             plt.imsave('ImageFrames/'+OPERATIONS[0][0]+'ResDif'+str(m)+'.png', imagecat)
+        #%%
         for m in range(0,OPERATIONS[0][2]):
+            AVPX = np.sum(np.abs(I.IMRES[m]-original))/np.count_nonzero(maskI[-1]-original)
             image = cv2.imread('ImageFrames/'+OPERATIONS[0][0]+'ResDif'+str(m)+'.png')  
-            texted_image =cv2.putText(img=np.copy(image), text="Repair Iteration"+str(m), org=(20,20),fontFace=3, fontScale=1, color=(0,0,0), thickness=3)
+            texted_image =cv2.putText(img=np.copy(image), text="Repair iteration = "+str(m)+
+                                      ', Compute Time [ms] = '+str(round(1000*I.TCALC[m],ndigits=None))+
+                                      ', Mean Pixel Difference'+str(round(AVPX,ndigits=3)),
+                                      org=(15,35),fontFace=0, fontScale=0.7, color=(0,0,0), thickness=2)
             plt.imshow(texted_image)
             plt.show()
 
