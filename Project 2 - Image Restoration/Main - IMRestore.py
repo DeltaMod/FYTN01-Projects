@@ -51,7 +51,6 @@ import numpy as np
 The format is: OPERATIONS = ['FILTER','MODE',Repetitions] - Add as many as you want in the given formatm, just add another row and you're good to go!
 """
 
-
 showIterations = True
 
 OPERATIONS = [['Gauss-3x3','FFTConvolveCut',4],
@@ -397,7 +396,7 @@ plt.show()
 
 #%%Short code to show off convolutions:
 PLOTTER = 0
-if plotter == 1
+if PLOTTER == 1:
     A = I.DMGI[1]
     B = I.IMG[0]
     
