@@ -39,6 +39,7 @@ some method of your own!
 """
 from matplotlib.pyplot import imread
 from scipy.signal import fftconvolve as FFTCONV2
+import numpy.fft as fftn
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2 #run pip install opencv-python
@@ -58,7 +59,7 @@ showIterations = False
 #OPERATIONS = [['Gauss-3x3','FFTConvolveCut',4],
 #              ['Gauss-5x5','FFTConvolveCut',4],]
 
-OPERATIONS = [['Gauss-3x3','PixelsOnly',20]]
+OPERATIONS = [['IEdgeLapl-3x3','FFTConvolve',5]]
 
 
 
@@ -87,7 +88,7 @@ I.IMFLTR(s_coord,'Gauss-5x5' ,'FFTConvolveCut',7)
 """
 
 
-plt.rcParams['figure.dpi']   = 200
+plt.rcParams['figure.dpi']   = 150
 plt.rcParams['axes.grid'] = False
 
 #Read in and determine the dimensions of the image
@@ -96,6 +97,7 @@ Dim   = original.shape
 rowrange = Dim[0]; colrange = Dim[1]
 
 #Read in and plot the mask
+
 mask = imread('mask_lowres2.bmp')[:,:,0]/255 #Available Masks: mask_lowres|mask_lowres2|mask_lowres3|mask_lowres4|mask_noise
 plt.figure()
 plt.imshow(original, cmap='gray')
@@ -301,12 +303,24 @@ plt.imshow(IMDiff,cmap='gray')
 plt.title('Difference Between Original and Repaired')
 plt.show()
 
-SCORE = np.sum(np.abs(I.IMRES[-1]-original))/np.count_nonzero(maskI[-1]-original)/(np.sum(np.abs(maskI - original))/np.count_nonzero(maskI-original))
-print('\n The numbers are in! \n The average pixel difference in the graffiti`d image is: ' +str((np.sum(np.abs(maskI - original))/np.count_nonzero(maskI-original))))
-print('\n The average pixel difference in the repaired image is: ' +str(np.sum(np.abs(I.IMRES[-1]-original))/np.count_nonzero(maskI[-1]-original)))
-print('\n The ratio of average pixel difference between the mask is = '+str(SCORE)+' \n A lower number is better!')
+SCORE = []
 
-if SCORE>1:
+
+for m in range(OPERATIONS[0][2]):
+    PPDIFF = []
+    for pix in range(len(s_coord)):
+        row = s_coord[pix][0]-mirr; col = s_coord[pix][1]-micr
+        if m == 0:
+            PPDIFF.append(np.abs(int(maskI[row,col])-int(original[row,col])))
+        else:
+            PPDIFF.append(np.abs(int(I.IMRES[m][row,col])-int(original[row,col])))
+    SCORE.append(np.sum(PPDIFF)/len(s_coord))
+
+print('\n The numbers are in! \n The average pixel difference in the graffiti`d image is: ' +str(round(SCORE[0],ndigits = 3)))
+print('\n The average pixel difference in the repaired image is: ' +str(SCORE[-1]))
+print('\n The ratio of average pixel difference between the mask is = '+str(SCORE[-1]/SCORE[0])+' \n A lower number is better!')
+
+if SCORE[-1]/SCORE[0]>1:
     print("\033[1;31;47m Are you trying to mess the image up or something? The you're not supposed to be aiming for a high score :(")
 
 """
@@ -401,8 +415,8 @@ plt.show()
 """
 
 
-#%%Short code to show off convolutions:
-PLOTTER = 1
+#%%Short code to show off convolutions: (WARNIONG - WRITES TO YOUR COMPUITER AND OVERWRITES OTHER EXAMPLES WITH AUTO-NAMING)
+PLOTTER = 0
 if PLOTTER == 1:
     imexp = 'MaskAndDiff'
     A = I.DMGI[1]
@@ -465,17 +479,26 @@ if PLOTTER == 1:
             plt.imsave('ImageFrames/'+OPERATIONS[0][0]+'Dif'+str(m)+'.png', imagediff)
             plt.imsave('ImageFrames/'+OPERATIONS[0][0]+'ResDif'+str(m)+'.png', imagecat)
         #%%
+        texted_image = []
+        
         for m in range(0,OPERATIONS[0][2]):
-            AVPX = np.sum(np.abs(I.IMRES[m]-original))/np.count_nonzero(maskI[-1]-original)
             image = cv2.imread('ImageFrames/'+OPERATIONS[0][0]+'ResDif'+str(m)+'.png')  
-            texted_image =cv2.putText(img=np.copy(image), text="Repair iteration = "+str(m)+
-                                      ', Compute Time [ms] = '+str(round(1000*I.TCALC[m],ndigits=None))+
-                                      ', Mean Pixel Difference'+str(round(AVPX,ndigits=3)),
-                                      org=(15,35),fontFace=0, fontScale=0.7, color=(0,0,0), thickness=2)
-            plt.imshow(texted_image)
-            plt.show()
+            texted_image.append(cv2.putText(img=image, text="Repair Iteration = "+str(m)+
+                                      ',   Compute Time = '+str(round(1000*I.TCALC[m],ndigits=None))+
+                                      ' ms ,   Mean Pixel Difference = '+str(round(SCORE[m],ndigits=3)),
+                                      org=(15,35),fontFace=0, fontScale=0.7, color=(0,0,0), thickness=2))
+            
+            plt.imsave('ImageFrames/'+OPERATIONS[0][0]+'FFTcutResDif'+str(m)+'.png', texted_image[m])
 
-# map the normalized data to colors
-# image is now RGBA (512x512x4) 
-
-# save the image
+#%%
+#
+#FT1 = (fftn.fft2(I.MSKCU[1]))
+#FT2 = (fftn.fft2(KM[2]))
+#FT3 = FT1
+#FT3[0:3,0:3] = FT1[0:3,0:3]*FT2
+#plt.imshow(abs(FT1[0:20,0:20]),cmap='gray')
+#plt.imshow(abs(FT2),cmap='gray')
+#plt.imshow(abs(FT3[0:20,0:20]),cmap='gray')
+#IFT = np.real(fftn.ifft2(FT3))
+#
+#plt.imshow(IFT[mirr:mirr+rowrange,micr:micr+colrange],cmap='gray')

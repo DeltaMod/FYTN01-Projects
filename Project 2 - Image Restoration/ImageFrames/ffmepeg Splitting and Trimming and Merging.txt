@@ -31,10 +31,19 @@ ffmpeg -r 15 -i Name%d.png -vcodec libx264 -b 800k out.mp4"
 Generate palette:
 ffmpeg -i Out.mp4 -filter_complex "fps=24,scale=-1:640,crop=ih:ih,setsar=1,palettegen" palette.png
 Create GIF:
-ffmpeg -i Out.mp4 -i palette.png -filter_complex "[0]fps=24,setsar=1[x];[x][1:v]paletteuse" Conv.gif
+ffmpeg -i Out.mp4 -i palette.png -filter_complex "[0]fps=24,setsar=1[x];[x][1:v]paletteuse" Gauss3x3Res.gif
+
+
+
 
 $Convert Gif file to Video
 ffmpeg -i your_gif.gif -c:v libvpx -crf 12 -b:v 500K output.webm
+
+%Convert png sequence to gif
+Generate palette:
+ffmpeg -i Out.mp4 -filter_complex "fps=24,scale=-1:640,crop=ih:ih,setsar=1,palettegen" palette.png
+ffmpeg -framerate 2 -i Gauss-3x3ResDif%d.png -i palette.png -filter_complex "[0]fps=24,setsar=1[x];[x][1:v]paletteuse"  output.gif
+
 
 filter_complex is a series of filters that operates on the input. Inside it, filters have inputs and outputs that are the parts in square brackets. So a filter with two inputs looks like this: [input0][input1]filter[output].
 [0:a:1] picks the 0th input file’s 1st audio track as input for the filter.
