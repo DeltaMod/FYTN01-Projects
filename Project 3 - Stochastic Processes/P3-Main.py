@@ -19,32 +19,52 @@ plt.rcParams['figure.dpi']   = 150
 
 
 class walkergen(object):
-    def __init__(self,DIM,TYPE):
+    def __init__(self,DIM,TYPE,INDEX):
         LB = int(DIM[0]/4)
         UB = int(3*DIM[0]/4)
+        self.DIM = DIM
         self.x = [randint(LB,UB)]  
         self.y = [randint(LB,UB)]  
         self.z = [randint(LB,UB)]
         self.coord = [[self.x[-1],self.y[-1],self.z[-1]]]
+        self.alive = True
+        self.TYPE  = TYPE
+        self.inx   = INDEX
         if TYPE == 'Aggro':
-            self.aggro = True if randint(0,10)>8 else False # 
-    def walkermove(self,DIM):
-        X = self.x[-1]; Y = self.y[-1]; Z = self.z[-1] 
-        X = self.x[-1]+randint(-1,1)
-        while X not in range(DIM[0]):
+            self.aggro = True if randint(0,10)>8 else False #
+        elif TYPE == 'Explode':
+            self.explode = True
+        elif TYPE == 'Gather':
+            self.gather = True
+            self.dtfood = [0]
+            
+    def walkermove(self,OLD):
+        if self.alive == True:
+            #%% Random Movement from Current Location
+            X = self.x[-1]; Y = self.y[-1]; Z = self.z[-1] 
             X = self.x[-1]+randint(-1,1)
-        
-        Y = self.y[-1]+randint(-1,1)
-        while Y not in range(DIM[1]):
+            while X not in range(self.DIM[0]):
+                X = self.x[-1]+randint(-1,1)
+            
             Y = self.y[-1]+randint(-1,1)
-        Z = self.z[-1]+randint(-1,1)
-        while Z not in range(DIM[2]):
-            Z = self.z[-1]+randint(-1,1) 
-        self.x.append(X)
-        self.y.append(Y)
-        self.z.append(Z)
-        self.coord.append([X,Y,Z])
-W = {n: walkergen(PGDIM,'Aggro') for n in range(NWalk)}
+            while Y not in range(self.DIM[1]):
+                Y = self.y[-1]+randint(-1,1)
+            Z = self.z[-1]+randint(-1,1)
+            while Z not in range(self.DIM[2]):
+                Z = self.z[-1]+randint(-1,1) 
+            
+            if [X,Y,Z] in OLD:
+                IND = OLD.index([X,Y,Z])
+                if self.inx != IND:
+                    self.alive = False
+                    W[IND].alive = False
+                    
+            else:        
+                self.x.append(X)
+                self.y.append(Y)
+                self.z.append(Z)
+                self.coord.append([X,Y,Z])
+W = {n: walkergen(PGDIM,'Aggro',n) for n in range(NWalk)}
 
 def walkerplot(WLOC):
     Locs = []
@@ -61,8 +81,9 @@ for n in range(Steps):
     for n in range(len(Locs)):
         TempM[Locs[n][-1][0],Locs[n][-1][1],Locs[n][-1][2]] = 1
     PG.append(TempM)
-    for n in range(NWalk):
-        W[n].walkermove(PGDIM)
+    OldW = [W[n].coord[-1].copy() for n in range(NWalk)]
+    for n in range(NWalk): 
+        W[n].walkermove(OldW)
 
 
 
