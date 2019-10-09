@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 plotIter = False
+plotInitEnd = True
 
 def init_matrix(N=20):
     """ Use this to setup the size of the matrices and the number of walkers. """
@@ -65,6 +66,9 @@ def plot_mat(mat, title=False):
     ax.voxels(mat, edgecolor="k")
     if title :
         plt.title(title)
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
     plt.show()
 
 def nb_of_walkrs(mat):
@@ -78,14 +82,11 @@ def nb_of_walkrs(mat):
 
 def iterate(A_0=init_matrix(), n_iteration = 10):
     """Returns a list of matrices, one for each iteration."""
-    plot_mat(A_0, 'Init')
     A = [A_0]
     for n in range(n_iteration):
         A_1 = update_matrix(A[n])
-        if plotIter : plot_mat(A_1, 'Iteration n'+str(n))
         #print(str(nb_of_walkrs(A_1))+ ' walkers at iteration '+str(n)) #unnecessary with plot_nb_walkrs
         A.append(A_1)
-    plot_mat(A[-1], 'End')
     return(A)
 
 
@@ -95,9 +96,23 @@ def plot_nb_walkrs(A):
     for mat in A :
         nb.append(nb_of_walkrs(mat))
     plt.figure()
-    plt.plot(nb, marker='+')
+    plt.plot(nb, marker='+', label='Measured data')
+    t = np.arange(3, len(nb)+3, dtype=float)
+    ro = t**(-1)*np.log(t)
+    plt.plot(np.mean(nb/ro)*ro, label='Analytic model', color='k')
     plt.title('Evolution of the number of walkers')
+    plt.xlabel('Number of iterations')
+    plt.ylabel('Number of walkers')
+    plt.legend()
     plt.show()
 
+#%%
+res = iterate(init_matrix(), 100)
+if plotInitEnd: plot_mat(res[0], 'Initial state')
+if plotInitEnd: plot_mat(res[-1], 'End state')
+if plotIter : 
+    for n in range(len(res)) :
+        plot_mat(res[n], 'Iteration n'+str(n))
 
-plot_nb_walkrs(iterate(init_matrix(), 100))
+#%%
+plot_nb_walkrs(res)
