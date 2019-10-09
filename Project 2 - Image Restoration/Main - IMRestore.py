@@ -56,10 +56,10 @@ The format is: OPERATIONS = ['FILTER','MODE',Repetitions] - Add as many as you w
 
 showIterations = False
 
-#OPERATIONS = [['Gauss-3x3','FFTConvolveCut',4],
+OPERATIONS = [['Gauss-3x3','FFTConvolveCut',4]]
 #              ['Gauss-5x5','FFTConvolveCut',4],]
 
-OPERATIONS = [['IEdgeLapl-3x3','FFTConvolve',5]]
+OPERATIONS = [['DiagEdge-3x3','PixelsOnly',1]]
 
 
 
@@ -138,7 +138,7 @@ plt.show()
 IMRes = maskI #Initialise size of "restored image"
 
 #We make a list of kernels, callable by their names - 
-KernelNames = ['EdgeLapl-3x3', 'IEdgeLapl-3x3','Gauss-3x3', 'Gauss-5x5','Unsharp-5x5','BoxBlur-3x3','Sharpen-3x3']
+KernelNames = ['EdgeLapl-3x3', 'IEdgeLapl-3x3','Gauss-3x3', 'Gauss-5x5','Unsharp-5x5','BoxBlur-3x3','Sharpen-3x3','DiagEdge-3x3']
 KM = []
 
 #Edge Laplacian = 'EdgeLapl-3x3':
@@ -171,9 +171,13 @@ KM.append(1/9*np.array([   [1,  1, 1],
                            [1,  1, 1], 
                            [1,  1, 1]]))
 #Sharpen 3x3  = 'Sharpen-3x3'
-KM.append(1/9*np.array([       [-1,  -1, -1],
+KM.append(1/9*np.array([   [-1,  -1, -1],
                            [-1,   9, -1], 
                            [-1,  -1, -1]]))
+#Find Diagonal Edges    
+KM.append(    np.array([   [0,  0,  1],
+                           [0,   1, -1], 
+                           [1,  -1, -1]]))    
 #We then stick all of these into a neat dictionary for later use!
 Kernel = {KernelNames[m]:KM[m] for m in range(len(KernelNames))}
 
