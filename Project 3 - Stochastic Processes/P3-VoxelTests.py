@@ -5,10 +5,10 @@ import matplotlib.pyplot as plt
 plotIter = False
 
 def init_matrix(N=20):
+    """ Use this to setup the size of the matrices and the number of walkers. """
     return(np.random.choice([0,1], size=(N,N,N), p=[0.9, 0.1]))
 
 def update_matrix_simple(mat):
-    #TODO : add anihilation
     mat_1 = np.zeros(mat.shape)
     for x in range(mat.shape[0]):
         for y in range(mat.shape[1]):
@@ -68,6 +68,7 @@ def plot_mat(mat, title=False):
     plt.show()
 
 def nb_of_walkrs(mat):
+    """Returns number of walkers in matrix mat."""
     nb = 0
     for x in range(mat.shape[0]):
         for y in range(mat.shape[1]):
@@ -76,18 +77,20 @@ def nb_of_walkrs(mat):
     return(nb)
 
 def iterate(A_0=init_matrix(), n_iteration = 10):
+    """Returns a list of matrices, one for each iteration."""
     plot_mat(A_0, 'Init')
     A = [A_0]
     for n in range(n_iteration):
         A_1 = update_matrix(A[n])
         if plotIter : plot_mat(A_1, 'Iteration n'+str(n))
-        print(str(nb_of_walkrs(A_1))+ ' walkers at iteration '+str(n))
+        #print(str(nb_of_walkrs(A_1))+ ' walkers at iteration '+str(n)) #unnecessary with plot_nb_walkrs
         A.append(A_1)
     plot_mat(A[-1], 'End')
     return(A)
 
 
 def plot_nb_walkrs(A):
+    """ Takes a list of matrices """
     nb = []
     for mat in A :
         nb.append(nb_of_walkrs(mat))
