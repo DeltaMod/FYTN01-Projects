@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 original = imread('EM_ScreamGS_lowres.bmp')[:,:,0]
-mask = imread('mask_lowres2.bmp')[:,:,0]
+mask = imread('mask_lowres3.bmp')[:,:,0]
 damaged_img = (original)*(mask/255)
 
 plt.figure()
@@ -73,3 +73,12 @@ plt.figure()
 plt.imshow(repaired_img, cmap='gray')
 plt.title('Repaired Image')
 plt.show()
+
+##
+I_mean = np.mean([original[x[0], x[1]] for x in s_coord])
+n = len(s_coord)
+sigma_2 = (1/(n-1))*sum([(original[x[0], x[1]] - I_mean)**2 for x in s_coord])
+discrep  = ((1/n)*sum([(repaired_img[x[0], x[1]] - original[x[0], x[1]])**2 for x in s_coord]))/sigma_2
+print(discrep)
+
+
