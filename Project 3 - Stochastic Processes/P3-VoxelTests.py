@@ -35,18 +35,18 @@ def plot_mat(mat, title=False):
     fig = plt.figure()
     ax = fig.gca(projection='3d')
     ax.voxels(mat, edgecolor="k")
+    if title :
+        plt.title(title)
     plt.show()
 
-A = init_matrix()
-plot_mat(A)
+def iterate(A_0=init_matrix(), n_iteration = 10):
+    plot_mat(A_0, 'Init')
+    A = [A_0]
+    for n in range(n_iteration):
+        A_1 = update_matrix(A[n])
+        plot_mat(A_1, 'Iteration n'+str(n))
+        A.append(A_1)
+    return(A)
 
-A=update_matrix(A)
-plot_mat(A)
-A=update_matrix(A)
-plot_mat(A)
-A=update_matrix(A)
-plot_mat(A)
-A=update_matrix(A)
-plot_mat(A)
-A=update_matrix(A)
-plot_mat(A)
+iterate()
+
