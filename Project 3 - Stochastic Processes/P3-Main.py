@@ -12,7 +12,7 @@ from IPython import display
 
 
 NWALK  = 300   #Number of Walkers
-DIMX = 25; DIMY = 25; DIMZ = 25   #Dimension of Area Considered 
+DIMX = 70; DIMY = 70; DIMZ = 70   #Dimension of Area Considered 
 NSTEPS = 500
 PGDIM = [DIMX,DIMY,DIMZ] #Plagground Dimensions [x,y,z]
 plt.rcParams['figure.dpi']   = 150
@@ -21,8 +21,8 @@ plt.rcParams['figure.dpi']   = 150
 
 def walkergen2(N,DIM,TYPE):
     WGen = [None]*N
-    LB = int(DIM[0]/10)
-    UB = int(3*DIM[0]/10)
+    LB = int(2*DIM[0]/10)
+    UB = int(8*DIM[0]/10)
     for m in range(N):
         X = randint(LB,UB) 
         Y = randint(LB,UB) 
@@ -35,54 +35,58 @@ def walkergen2(N,DIM,TYPE):
 def walkermove(self):
     WMov = []
     for m in range(len(self[-1])):
-        #Random Movement from Current Location
-        X = self[-1][m][1][0]+randint(-1,1)
-        while X not in range(self[-1][m][2][0]): #Re-calculate if X is outside of bounds
+        if self[-1][m][3] == 'alive':
+            #Random Movement from Current Location
             X = self[-1][m][1][0]+randint(-1,1)
-        
-        Y = self[-1][m][1][1]+randint(-1,1)
-        while Y not in range(self[-1][m][2][1]): #Re-calculate if Y is outside of bounds
+            while X not in range(self[-1][m][2][0]): #Re-calculate if X is outside of bounds
+                X = self[-1][m][1][0]+randint(-1,1)
+            
             Y = self[-1][m][1][1]+randint(-1,1)
-        
-        Z = self[-1][m][1][2]+randint(-1,1)
-        while Z not in range(self[-1][m][2][2]): #Re-calculate if Z is outside of bounds
+            while Y not in range(self[-1][m][2][1]): #Re-calculate if Y is outside of bounds
+                Y = self[-1][m][1][1]+randint(-1,1)
+            
             Z = self[-1][m][1][2]+randint(-1,1)
-        WMov.append([m,[X,Y,Z],self[-1][m][2],self[-1][m][3]])
+            while Z not in range(self[-1][m][2][2]): #Re-calculate if Z is outside of bounds
+                Z = self[-1][m][1][2]+randint(-1,1)
+            WMov.append([m,[X,Y,Z],self[-1][m][2],self[-1][m][3]])
+        else:
+            WMov.append(self[-1][m])
     self.append([WMov[n] for n in range(len(WMov))])
         
     
 def walkersplode(self,LCTN,LID):
     A,IND = np.unique((LCTN[-1]),axis=0,return_index = True)
-    
     for m in range(len(self[-1])):
         if m not in Lind[-1][IND]:
             if self[-1][m][3] == 'alive':
                 self[-1][m][3] = 'dead'
                 
-                print('Walker with IND = '+str(m)+' has died')
-        
                 
-
+                
+        
 def localive(self):
     STATUS = [W[-1][n][3]for n in range(len(W[-1]))]                  # Polls status of walkers in the current step
-    ALIVE  = [i for i in range(len(STATUS)) if STATUS[i]=='alive']  # Gets index of alive walkers
+    ALIVE  = [i for i in range(len(STATUS)) if STATUS[i]=='alive']    # Gets index of alive walkers
+    DEAD   = [i for i in range(len(STATUS)) if STATUS[i]=='dead']    # Gets index of alive walkers
     LCTN   = [W[-1][ALIVE[n]][1] for n in range(len(ALIVE))]
-    return(ALIVE,LCTN)
+    LOCD   = [W[-1][DEAD[n]][1] for n in range(len(DEAD))]
+    return(ALIVE,LCTN,LOCD)
     
 #A[walkerID][StepNumber][ID/Coord/Dim/Status][AdDim]        
 
 W = walkergen2(NWALK,PGDIM,'basic')
 Locs = []
 Lind = []
+DthLoc = []
 for m in range(NSTEPS):     
     walkermove(W)
     Locs.append(np.array(localive(W)[1]))
     Lind.append(np.array(localive(W)[0]))
+    DthLoc.append(np.array(localive(W)[2]))
     walkersplode(W,Locs,Lind)
 
-
+    
 #%%
-
 fig = plt.figure(1)
 plt.ion()
 DW = [NWALK-(NWALK-len(Locs[n])) for n in range(len(Locs))]
@@ -94,6 +98,8 @@ for n in range(NSTEPS):
     ax.set_ylim3d(0,PGDIM[0])
     ax.set_zlim3d(0,PGDIM[0])
     ax.scatter3D(Locs[n][:,0],Locs[n][:,1],Locs[n][:,2])
+    if DthLoc[n]!=[]:
+        ax.scatter3D(DthLoc[n][:,0],DthLoc[n][:,1],DthLoc[n][:,2],color='k',alpha=0.2)
     ax = fig.add_subplot(1,2,2)
     ax.plot(DW[1:n])  
     plt.pause(0.001)
