@@ -92,16 +92,24 @@ plt.ion()
 DW = [NWALK-(NWALK-len(Locs[n])) for n in range(len(Locs))]
 for n in range(NSTEPS):
     fig.clf()
+    fig.suptitle('Evolution of random walkers')
     ax = fig.add_subplot(1,2,1,projection='3d')
     ax = fig.gca(projection='3d')
     ax.set_xlim3d(0, PGDIM[0])
     ax.set_ylim3d(0,PGDIM[0])
     ax.set_zlim3d(0,PGDIM[0])
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
     ax.scatter3D(Locs[n][:,0],Locs[n][:,1],Locs[n][:,2])
-    if DthLoc[n]!=[]:
+    if np.size(DthLoc[n]) != 0:
         ax.scatter3D(DthLoc[n][:,0],DthLoc[n][:,1],DthLoc[n][:,2],color='k',alpha=0.2)
     ax = fig.add_subplot(1,2,2)
     ax.plot(DW[1:n])  
+    ax.yaxis.tick_right()
+    ax.yaxis.set_label_position("right")
+    ax.set_ylabel('Number of walkers')
+    ax.set_xlabel('Number of iterations')
     plt.pause(0.001)
 #%% 
 
