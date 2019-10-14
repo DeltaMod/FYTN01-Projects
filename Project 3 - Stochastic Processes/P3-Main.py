@@ -11,23 +11,28 @@ from mpl_toolkits.mplot3d import Axes3D
 from IPython import display
 
 
-NWALK  = 300   #Number of Walkers
-DIMX = 70; DIMY = 70; DIMZ = 70   #Dimension of Area Considered 
+NWALK  = 50   #Number of Walkers
+DIMX = 5; DIMY = 5; DIMZ = 5   #Dimension of Area Considered 
 NSTEPS = 500
 PGDIM = [DIMX,DIMY,DIMZ] #Plagground Dimensions [x,y,z]
 plt.rcParams['figure.dpi']   = 150
 
 #%% Testing out using lists of lists instead for this, such that W[n,0]
 
-def walkergen2(N,DIM,TYPE):
+def walkergen(N,DIM,TYPE):
     WGen = [None]*N
     LB = int(2*DIM[0]/10)
     UB = int(8*DIM[0]/10)
     for m in range(N):
-        X = randint(LB,UB) 
-        Y = randint(LB,UB) 
-        Z = randint(LB,UB)    
-        WGen[m] = [m,[X,Y,Z],[DIM[0],DIM[1],DIM[2]],'alive']
+        X    = randint(LB,UB) 
+        Y    = randint(LB,UB) 
+        Z    = randint(LB,UB)
+        HNTR = bool(randint(0,10))
+        if HNTR ==False:
+            WTYPE = 'aggro'
+        else:
+            WTYPE = 'passive'
+        WGen[m] = [m,[X,Y,Z],[DIM[0],DIM[1],DIM[2]],'alive',WTYPE]
     WStep = []
     WStep.append([WGen[n] for n in range(len(WGen))])
     return(WStep)
@@ -48,7 +53,7 @@ def walkermove(self):
             Z = self[-1][m][1][2]+randint(-1,1)
             while Z not in range(self[-1][m][2][2]): #Re-calculate if Z is outside of bounds
                 Z = self[-1][m][1][2]+randint(-1,1)
-            WMov.append([m,[X,Y,Z],self[-1][m][2],self[-1][m][3]])
+            WMov.append([m,[X,Y,Z],self[-1][m][2],self[-1][m][3],self[-1][m][4]])
         else:
             WMov.append(self[-1][m])
     self.append([WMov[n] for n in range(len(WMov))])
@@ -57,39 +62,59 @@ def walkermove(self):
 def walkersplode(self,LCTN,LID):
     A,IND = np.unique((LCTN[-1]),axis=0,return_index = True)
     for m in range(len(self[-1])):
-        if m not in Lind[-1][IND]:
+        if m not in LID[-1][IND]:
             if self[-1][m][3] == 'alive':
                 self[-1][m][3] = 'dead'
+                
+
+def NearestNeighbour(LAGG,AGGIND,LPASS,PASSIND):
+    for n in range(len(AGGIND)):
+        delt = LAGG[-1][n]-LPAS[-1]
+
+    
                 
                 
                 
         
 def localive(self):
-    STATUS = [W[-1][n][3]for n in range(len(W[-1]))]                  # Polls status of walkers in the current step
-    ALIVE  = [i for i in range(len(STATUS)) if STATUS[i]=='alive']    # Gets index of alive walkers
-    DEAD   = [i for i in range(len(STATUS)) if STATUS[i]=='dead']    # Gets index of alive walkers
+    STATUS = [W[-1][n][3]for n in range(len(W[-1]))]                            # Polls status of walkers in the current step
+    ALIVE  = [i for i in range(len(STATUS)) if STATUS[i]                 =='alive']    # Gets index of alive walkers
+    AGGRO  = [ALIVE[i] for i in range(len(ALIVE)) if W[-1][ALIVE[i]][4]  =='aggro']    # Gets index of aggro walkers
+    PASSV  = [ALIVE[i] for i in range(len(ALIVE)) if W[-1][ALIVE[i]][4]  =='passive']    # Gets index of passive walkers
+    DEAD   = [i for i in range(len(STATUS)) if STATUS[i]                 =='dead' ]    # Gets index of dead walkers
     LCTN   = [W[-1][ALIVE[n]][1] for n in range(len(ALIVE))]
     LOCD   = [W[-1][DEAD[n]][1] for n in range(len(DEAD))]
-    return(ALIVE,LCTN,LOCD)
+    LAGG   = [W[-1][AGGRO[n]][1] for n in range(len(AGGRO))]
+    LPAS   = [W[-1][PASSV[n]][1] for n in range(len(PASSV))]
+    return(ALIVE,LCTN,LOCD,AGGRO,LAGG,PASSV,LPAS)
     
 #A[walkerID][StepNumber][ID/Coord/Dim/Status][AdDim]        
 
-W = walkergen2(NWALK,PGDIM,'basic')
-Locs = []
-Lind = []
-DthLoc = []
+W = walkergen(NWALK,PGDIM,'basic')
+AlvLoc = [] #Locations of Alive Walkers
+AlvIND = [] #Location Index of Alive Walkers
+DthLoc = [] #Locations of Dead Walkers
+AggIND = [] #Location Index of aggro walkers 
+AggLoc = []
+PasIND = []
+PasLoc = []
 for m in range(NSTEPS):     
+    LocLivAll = localive(W)
+    AlvLoc.append(np.array(LocLivAll[1]))
+    AlvIND.append(np.array(LocLivAll[0]))
+    DthLoc.append(np.array(LocLivAll[2]))
+    AggIND.append(np.array(LocLivAll[3]))
+    AggLoc.append(np.array(LocLivAll[4]))
+    PasIND.append(np.array(LocLivAll[5]))
+    PasLoc.append(np.array(LocLivAll[6]))
     walkermove(W)
-    Locs.append(np.array(localive(W)[1]))
-    Lind.append(np.array(localive(W)[0]))
-    DthLoc.append(np.array(localive(W)[2]))
-    walkersplode(W,Locs,Lind)
+    walkersplode(W,AlvLoc,AlvIND)
 
     
 #%%
 fig = plt.figure(1)
 plt.ion()
-DW = [NWALK-(NWALK-len(Locs[n])) for n in range(len(Locs))]
+DW = [NWALK-(NWALK-len(AlvLoc[n])) for n in range(len(AlvLoc))]
 for n in range(NSTEPS):
     fig.clf()
     ax = fig.add_subplot(1,2,1,projection='3d')
@@ -97,8 +122,11 @@ for n in range(NSTEPS):
     ax.set_xlim3d(0, PGDIM[0])
     ax.set_ylim3d(0,PGDIM[0])
     ax.set_zlim3d(0,PGDIM[0])
-    ax.scatter3D(Locs[n][:,0],Locs[n][:,1],Locs[n][:,2])
-    if DthLoc[n]!=[]:
+    if len(PasLoc[n])!=0:
+        ax.scatter3D(PasLoc[n][:,0],PasLoc[n][:,1],PasLoc[n][:,2],color='b',alpha=0.8)
+    if len(AggLoc[n])!=0:
+        ax.scatter3D(AggLoc[n][:,0],AggLoc[n][:,1],AggLoc[n][:,2],color='r',alpha=0.8)
+    if len(DthLoc[n])!=0:
         ax.scatter3D(DthLoc[n][:,0],DthLoc[n][:,1],DthLoc[n][:,2],color='k',alpha=0.2)
     ax = fig.add_subplot(1,2,2)
     ax.plot(DW[1:n])  
