@@ -13,7 +13,7 @@ from IPython import display
 
 NWALK  = 50   #Number of Walkers
 DIMX = 5; DIMY = 5; DIMZ = 5   #Dimension of Area Considered 
-NSTEPS = 500
+NSTEPS = 50
 PGDIM = [DIMX,DIMY,DIMZ] #Plagground Dimensions [x,y,z]
 plt.rcParams['figure.dpi']   = 150
 
@@ -66,11 +66,20 @@ def walkersplode(self,LCTN,LID):
             if self[-1][m][3] == 'alive':
                 self[-1][m][3] = 'dead'
                 
-
-def NearestNeighbour(LAGG,AGGIND,LPASS,PASSIND):
-    for n in range(len(AGGIND)):
-        delt = LAGG[-1][n]-LPAS[-1]
-
+#%%
+def NearestNeighbour(LAGG,AGGIND,LPASS,PASSIND,nselec):
+    NSUM =  []
+    delt = []
+    NLOC = []
+    for n in range(len(AGGIND[nselec])):
+        delt.append(abs(LAGG[nselec][n]-LPASS[nselec]))
+    for n in range(len(delt)):
+        NSUM.append([sum(delt[n][m]) for m in  range(len(delt[n]))])
+    NLOC = LPASS[nselec][PASSIND[nselec][np.argmin(NSUM)]] 
+    return NLOC
+    #return delt
+A = NearestNeighbour(AggLoc,AggIND,PasLoc,PasIND,0)
+#%%
     
                 
                 
@@ -95,9 +104,9 @@ AlvLoc = [] #Locations of Alive Walkers
 AlvIND = [] #Location Index of Alive Walkers
 DthLoc = [] #Locations of Dead Walkers
 AggIND = [] #Location Index of aggro walkers 
-AggLoc = []
-PasIND = []
-PasLoc = []
+AggLoc = [] #Location of aggro walkers
+PasIND = [] #Location Index of passive walkers
+PasLoc = [] #Location of PassiveWalkers
 for m in range(NSTEPS):     
     LocLivAll = localive(W)
     AlvLoc.append(np.array(LocLivAll[1]))
@@ -132,7 +141,6 @@ for n in range(NSTEPS):
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
-    ax.scatter3D(Locs[n][:,0],Locs[n][:,1],Locs[n][:,2])
     ax = fig.add_subplot(1,2,2)
     ax.plot(DW[1:n])  
     ax.yaxis.tick_right()
