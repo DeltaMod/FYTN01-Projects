@@ -12,8 +12,8 @@ from IPython import display
 
 
 NWALK  = 50   #Number of Walkers
-DIMX = 5; DIMY = 5; DIMZ = 5   #Dimension of Area Considered 
-NSTEPS = 50
+DIMX = 10; DIMY = 10; DIMZ = 10   #Dimension of Area Considered 
+NSTEPS = 500
 PGDIM = [DIMX,DIMY,DIMZ] #Plagground Dimensions [x,y,z]
 plt.rcParams['figure.dpi']   = 150
 
@@ -66,19 +66,7 @@ def walkersplode(self,LCTN,LID):
             if self[-1][m][3] == 'alive':
                 self[-1][m][3] = 'dead'
                 
-#%%
-def NearestNeighbour(LAGG,AGGIND,LPASS,PASSIND,nselec):
-    NSUM =  []
-    delt = []
-    NLOC = []
-    for n in range(len(AGGIND[nselec])):
-        delt.append(abs(LAGG[nselec][n]-LPASS[nselec]))
-    for n in range(len(delt)):
-        NSUM.append([sum(delt[n][m]) for m in  range(len(delt[n]))])
-    NLOC = LPASS[nselec][PASSIND[nselec][np.argmin(NSUM)]] 
-    return NLOC
-    #return delt
-A = NearestNeighbour(AggLoc,AggIND,PasLoc,PasIND,0)
+
 #%%
     
                 
@@ -98,6 +86,22 @@ def localive(self):
     return(ALIVE,LCTN,LOCD,AGGRO,LAGG,PASSV,LPAS)
     
 #A[walkerID][StepNumber][ID/Coord/Dim/Status][AdDim]        
+#%%
+    
+def NearestNeighbour(LAGG,LPASS,nselec):
+    NSUM  = []
+    delt  = []
+    NLOC  = []
+    APVec = []
+    for n in range(len(LAGG[nselec])):
+        delt.append(abs(LAGG[nselec][n]-LPASS[nselec]))
+    for n in range(len(delt)):
+        NSUM.append([sum(delt[n][m]) for m in  range(len(LPASS[nselec]))])
+        NLOC.append(np.array(LPASS[nselec][np.argmin(NSUM[n])]))
+        APVec.append([LAGG[nselec][n],NLOC[n]])
+    return APVec
+    #return delt
+
 
 W = walkergen(NWALK,PGDIM,'basic')
 AlvLoc = [] #Locations of Alive Walkers
@@ -107,6 +111,7 @@ AggIND = [] #Location Index of aggro walkers
 AggLoc = [] #Location of aggro walkers
 PasIND = [] #Location Index of passive walkers
 PasLoc = [] #Location of PassiveWalkers
+ATPVec = [] #Vector from Agg->Pass
 for m in range(NSTEPS):     
     LocLivAll = localive(W)
     AlvLoc.append(np.array(LocLivAll[1]))
@@ -116,10 +121,10 @@ for m in range(NSTEPS):
     AggLoc.append(np.array(LocLivAll[4]))
     PasIND.append(np.array(LocLivAll[5]))
     PasLoc.append(np.array(LocLivAll[6]))
+    ATPVec.append(NearestNeighbour(AggLoc,PasLoc,-1))
     walkermove(W)
-    walkersplode(W,AlvLoc,AlvIND)
+    #walkersplode(W,AlvLoc,AlvIND)
 
-    
 #%%
 fig = plt.figure(1)
 plt.ion()
@@ -138,6 +143,9 @@ for n in range(NSTEPS):
         ax.scatter3D(AggLoc[n][:,0],AggLoc[n][:,1],AggLoc[n][:,2],color='r',alpha=0.8)
     if len(DthLoc[n])!=0:
          ax.scatter3D(DthLoc[n][:,0],DthLoc[n][:,1],DthLoc[n][:,2],color='k',alpha=0.2)
+    if len(ATPVec[n])!=0:
+        for m in range(len(ATPVec[n])):
+            ax.plot3D([ATPVec[n][m][0][0],ATPVec[n][m][1][0]],[ATPVec[n][m][0][1],ATPVec[n][m][1][1]],[ATPVec[n][m][0][2],ATPVec[n][m][1][2]])
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
@@ -147,7 +155,7 @@ for n in range(NSTEPS):
     ax.yaxis.set_label_position("right")
     ax.set_ylabel('Number of walkers')
     ax.set_xlabel('Number of iterations')
-    plt.pause(0.001)
+    plt.pause(0.1)
 #%% 
 
    
