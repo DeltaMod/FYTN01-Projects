@@ -39,19 +39,19 @@ def walkergen(N,DIM,TYPE,HRNG):
             Y    = randint(LBY,UBY) 
             Z    = randint(LBZ,UBZ)
             WTYPE = 'passive'
-        WGen[m] = [m,[X,Y,Z],[DIM[0],DIM[1],DIM[2]],'alive',WTYPE,[]]
+        WGen[m] = [m,[X,Y,Z],[DIM[0],DIM[1],DIM[2]],'alive',WTYPE,[],0]
     WStep = []
     WStep.append([WGen[n] for n in range(len(WGen))])
     return(WStep)
     
-def walkeradd(self):
+def walkeradd(self,BIRA):
     for n in range(len(self[-1])):
         if self[-1][n][4] == 'passive' and self[-1][n][3] == 'alive':
-            BRNG = bool(int(randint(0,20)/20))
+            BRNG = bool(int(randint(0,BIRA)/BIRA))
             if BRNG == True:
                 coordmod = [self[-1][n][1][0]+randint(-1,1),self[-1][n][1][1]+randint(-1,1),self[-1][n][1][2]+randint(-1,1)]
-                self[-1].append([len(self[-1])+1,coordmod,self[-1][n][2],'alive','passive',[]])
-    
+                self[-1].append([len(self[-1])+1,coordmod,self[-1][n][2],'alive','passive',[],0])
+
 def walkermove(self):
     WMov = []
     for m in range(len(self[-1])):
@@ -69,7 +69,7 @@ def walkermove(self):
             Z = self[-1][m][1][2]+randint(-1,1)
             while Z not in range(self[-1][m][2][2]): #Re-calculate if Z is outside of bounds
                 Z = self[-1][m][1][2]+randint(-1,1)
-            WMov.append([m,[X,Y,Z],self[-1][m][2],self[-1][m][3],self[-1][m][4],[]])
+            WMov.append([m,[X,Y,Z],self[-1][m][2],self[-1][m][3],self[-1][m][4],[],self[-1][m][6]+1])
         else:
             WMov.append(self[-1][m])
     self.append([WMov[n] for n in range(len(WMov))])
@@ -100,7 +100,7 @@ def walkerhunt(self,HR,PR):
                 Z = self[-1][m][1][2]+MoveDir[2]*rngmod
                 while Z not in range(self[-1][m][2][2]): #Re-calculate if Z is outside of bounds
                     Z = self[-1][m][1][2]+randint(-1,1)
-                WMov.append([m,[X,Y,Z],self[-1][m][2],self[-1][m][3],self[-1][m][4],self[-1][m][5]])
+                WMov.append([m,[X,Y,Z],self[-1][m][2],self[-1][m][3],self[-1][m][4],self[-1][m][5],self[-1][m][6]+1])
                 
             elif self[-1][m][4] == 'aggro' and np.sum(abs(MoveDir))<HR:
                 for n in range(3):
@@ -124,7 +124,7 @@ def walkerhunt(self,HR,PR):
                 Z = self[-1][m][1][2]+MoveDir[2]*rngmod
                 while Z not in range(self[-1][m][2][2]): #Re-calculate if Z is outside of bounds
                     Z = self[-1][m][1][2]+randint(-1,1)
-                WMov.append([m,[X,Y,Z],self[-1][m][2],self[-1][m][3],self[-1][m][4],self[-1][m][5]])
+                WMov.append([m,[X,Y,Z],self[-1][m][2],self[-1][m][3],self[-1][m][4],self[-1][m][5],self[-1][m][6]+1])
             else:
                 X = self[-1][m][1][0]+randint(-1,1)
                 while X not in range(self[-1][m][2][0]): #Re-calculate if X is outside of bounds
@@ -137,7 +137,7 @@ def walkerhunt(self,HR,PR):
                 Z = self[-1][m][1][2]+randint(-1,1)
                 while Z not in range(self[-1][m][2][2]): #Re-calculate if Z is outside of bounds
                     Z = self[-1][m][1][2]+randint(-1,1)
-                WMov.append([m,[X,Y,Z],self[-1][m][2],self[-1][m][3],self[-1][m][4],[]])
+                WMov.append([m,[X,Y,Z],self[-1][m][2],self[-1][m][3],self[-1][m][4],[],self[-1][m][6]+1])
                 
         else:
             WMov.append(self[-1][m])
@@ -150,12 +150,23 @@ def walkersplode(self,LCTN,LID):
             if self[-1][m][3] == 'alive':
                 self[-1][m][3] = 'dead'
                 
-def walkerkill(self,PIND,PLOC,ALOC):
+def walkerkill(self,PIND,PLOC,AIND,ALOC):
     for m in range(len(ALOC[-1])):
-        IDLOC = [i for i in range(len(PLOC[-1])) if PLOC[-1][i][0]  == ALOC[-1][m][0] and PLOC[-1][i][1]  == ALOC[-1][m][1] and PLOC[-1][i][2]  == ALOC[-1][m][2] ]    # Gets index of aggro walkers
+        IDLOC = [[i,m] for i in range(len(PLOC[-1])) if PLOC[-1][i][0]  == ALOC[-1][m][0] and PLOC[-1][i][1]  == ALOC[-1][m][1] and PLOC[-1][i][2]  == ALOC[-1][m][2] ]    # Gets index of aggro walkers
+        
         for n in range(len(IDLOC)):    
-            W[-1][PIND[-1][IDLOC[n]]][3] = 'dead'
+            W[-1][PIND[-1][IDLOC[n][0]]][3] = 'dead'
+            W[-1][AIND[-1][IDLOC[n][1]]][6] = 0   #set days since last eaten
 
+def aggrostarve(self,AIND):
+    for n in range(len(AIND[-1])):
+        if self[-1][AIND[n]][6] > 100:
+            self[-1][AIND[n]][3][3] = 'dead'
+            
+def aggrobirth(self,AIND):
+    for n in range(len(AIND[-1])):
+        if self[-1][AIND[n]][6] > 5:
+            self[-1][AIND[n]][3][3] = 'dead'
 #%%
     
                 
@@ -215,10 +226,10 @@ ATPVec = [] #Vector from Agg->Pass
 PTAVec = [] #Vector from Pass->Agg
 HR     = 50 #Hunting Radius
 PR     = 20 #Passive Radius
+BR     = 250 #Birth Rate (equiv to 1:BR)
 for m in range(NSTEPS):
     if BIRTHS == 'True':      
-        if (m+1)%10 == 0:
-            walkeradd(W)
+        walkeradd(W,BR)
     LocLivAll = localive(W)
     AlvLoc.append(np.array(LocLivAll[1]))
     AlvIND.append(np.array(LocLivAll[0]))
@@ -238,7 +249,7 @@ for m in range(NSTEPS):
                 W[-1][PasIND[-1][n]][5] = PTAVec[-1][n]
             
             walkerhunt(W,HR,PR)
-            walkerkill(W,PasIND,PasLoc,AggLoc)
+            walkerkill(W,PasIND,PasLoc,AggIND,AggLoc)
         else: 
             walkermove(W)
     elif WalkerType == 'Exploding':
