@@ -19,7 +19,7 @@ import matplotlib as mpl
 from random import randint
 from mpl_toolkits.mplot3d import Axes3D
 from scipy import signal
-from scipy.stats import norm
+from scipy.stats import chisquare
 import tqdm
 
 plt.rcParams['figure.dpi']   = 150
@@ -52,16 +52,16 @@ plt.rcParams['figure.dpi']   = 150
 (_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_)
 
 Modify these in any way - the code should be robust to handle most, if not all, possible combinations that aren't zero.
-                                                                                         
+Current parameters should be decent enough to allow for a hunter-runner plot to function
 """
-NWALK      = 500              #Number of Walkers
-DIMX       = 50
-DIMY       = 50              
-DIMZ       = 50 
+NWALK      = 100               #Number of Walkers
+DIMX       = 25                #Lattice x-dim
+DIMY       = 25                #Lattice y-dim             
+DIMZ       = 25                #Lattice z-dim 
 PGDIM      = [DIMX,DIMY,DIMZ]  #Plagground Dimensions [x,y,z]
-NSTEPS     = 100
-WalkerType = 'Aggro'       #Aggro|Exploding
-BIRTHS     = True            #Births or no Births
+NSTEPS     = 500               #Total Number of steps taken
+WalkerType = 'Aggro'           #Aggro|Exploding
+BIRTHS     = True              #Births or no Births
 AGGRNG     = 4                 #Aggro Gen RNG - 1:AGGRNG+1 chance to make hunter 
 HR         = 9                 #Hunting Radius
 PR         = 2                 #Passive Radius
@@ -69,19 +69,21 @@ BR         = 20                #Passive Birth Rate (equiv to 1:BR)
 ABR        = 60                #Aggro Birth chance (equiv to 1:ABR) - This can only happen within 2 days of eating
 ASTRV      = 16                #Rate of aggressive starvation - If aggro does not eat in  ASTRV days, it dies
 PSTRV      = BR*3              #Rate of passive "starvation" - On average, each passive cell should reproduce twice in its lifetime
-ANIMATE    = True             #Animates results - set to false to simply get the population plot
+ANIMATE    = True              #Animates results - set to false to simply get the population plot - Note, time to complete simulation 
+                               # is IDENTICAL between these modes, it simply takes a long time before it finishes plotting
 AXLIM      = True              #If true - sets axis constraints for entire lattice, if false - sets constraints only to the action
 MAXPAS     = NWALK*5           #Maximum sustainiable population - This is just to make sure the simulation does not get out of hand
-DIMPLOT    = True             #Plots only distribution
-DTHPLOT    = False            #Plots locations of dead walkers - may get cluttered
+DIMPLOT    = True              #Plots only distribution
+DTHPLOT    = False             #Plots locations of dead walkers - may get cluttered
 #%% Testing out using lists of lists instead for this, such that W[n,0]
 
 def walkergen(N,DIM,TYPE,HRNG):
     WGen = [None]*N
-    LBM = 3/10; UBM = 7/10; 
+    #These parameters control volume within the lattice that walkers are generated
+    LBM = 3/10; UBM = 7/10;  #Passive/exploding parameters
     LBX = int(LBM*DIM[0]);LBY = int(LBM*DIM[1]);LBZ = int(LBM*DIM[2])
     UBX = int(UBM*DIM[0]);UBY = int(UBM*DIM[1]);UBZ = int(UBM*DIM[2])
-    LBMh = 2/10; UBMh = 8/10; 
+    LBMh = 2/10; UBMh = 8/10; #Aggressive walker parameters
     LBXh = int(LBMh*DIM[0]);LBYh = int(LBMh*DIM[1]);LBZh = int(LBMh*DIM[2])
     UBXh = int(UBMh*DIM[0]);UBYh = int(UBMh*DIM[1]);UBZh = int(UBMh*DIM[2])
     for m in range(N):
@@ -258,7 +260,7 @@ def localive(WLKR):
     return(ALIVE,LCTN,LOCD,AGGRO,LAGG,PASSV,LPAS)
     
 #A[walkerID][StepNumber][ID/Coord/Dim/Status][AdDim]        
-#%%
+#%% 
     
 def NearestPassive(LAGG,LPASS,nselec):
     NSUM  = []
@@ -277,7 +279,6 @@ def NearestPassive(LAGG,LPASS,nselec):
             APVec.append([np.array((LAGG[nselec][n])),np.array((-1000, -1000, -1000))])      
     return APVec
 
-    #return delt
 def NearestAggro(LAGG,LPASS,nselec):
     NSUM  = []
     delt  = []
@@ -296,6 +297,7 @@ def NearestAggro(LAGG,LPASS,nselec):
     
     return PAVec
 
+#%% This entire loop controls the simulation, but all changes should be made above
 W = walkergen(NWALK,PGDIM,WalkerType,AGGRNG)
 AlvLoc = [] #Locations of Alive Walkers
 AlvIND = [] #Location Index of Alive Walkers
@@ -349,7 +351,7 @@ with tqdm.tqdm(total=int(pbstep)) as pbar:
         
 pbar.close()
 
-#%%
+#%% This entire block is for iterative (or non-iterative plotting) in addition to some more data analysis stuff
 DW  =  [NWALK-(NWALK-len(AlvLoc[n])) for n in range(len(AlvLoc))]
 DAgg = [len(AggIND[n]) for n in range(len(AggIND))]
 DPas = [len(PasIND[n]) for n in range(len(PasIND))]
@@ -461,13 +463,13 @@ else:
     plt.pause(0.01)
     ax.legend(loc='upper right')
     ax.grid()
-#%% 
+    
+#%%  Plotting histograms at any point in time m  - currently set to only NSTEPS
 EXTRAFIG = False
 if EXTRAFIG == True:
     fig = plt.figure(2)
     for m in range(NSTEPS):
         if m%(NSTEPS-1)==0:
-            m = 200
             #RDATA = [DIST3[0][m][n]+DIST3[1][m][n]+DIST3[2][m][n] for n in range(len(DIST3[2][m]))]
             bindim     = np.linspace(1,max(PGDIM),int(max(PGDIM))) 
             histx,BINx = np.histogram(AlvLoc[m][:,0],bins = bindim)
@@ -488,6 +490,7 @@ if EXTRAFIG == True:
             plt.ylabel('Number of Walkers')
     
     #%% For the love of god, don't try to run the animation - it used 10 GB of my ram at 20000 iterations
+    #Either way, this plots the traces of all walkers - the commented tex animates it - don't do that unless you want to
     ONLYRUNIFBEEFCOMPUTER = False
     PWA = []
     if ONLYRUNIFBEEFCOMPUTER == True:
@@ -514,13 +517,12 @@ if EXTRAFIG == True:
         ax.set_xlim3d(0, PGDIM[0])
         ax.set_ylim3d(0,PGDIM[1])
         ax.set_zlim3d(0,PGDIM[2])
-    #%%
         
-    #Extra Plots
-       
+    #%% Plot the real space locations of all passive and agressive walkers
+
     fig = plt.figure(4)
     ax = fig.gca(projection='3d')
-    m = 200
+    m = NSTEPS-1
     cmpas = plt.get_cmap("winter")
     cmhun = plt.get_cmap("autumn")
     ax.scatter3D(PasLoc[m][:,0],PasLoc[m][:,1],PasLoc[m][:,2],alpha=0.8,c=PasLoc[m][:,2],cmap=cmpas)   
@@ -532,7 +534,8 @@ if EXTRAFIG == True:
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
-    #%%    
+    
+    #%% Plot densities of each measured simulation
     
     fig = plt.figure(5)
     DWDen  =  [(NWALK-(NWALK-len(AlvLoc[n])))/(PGDIM[0]*PGDIM[1]*PGDIM[2]) for n in range(len(AlvLoc))]
@@ -548,7 +551,7 @@ if EXTRAFIG == True:
     
     
     
-    #%%
+    #%% Compare density distributions and Chi Squared test
     
     fig = plt.figure(6)
     plt.clf()
@@ -563,7 +566,7 @@ if EXTRAFIG == True:
     ax.set_xlabel('Number of iterations')
     ax.legend()    
     ax.grid()
-
+    ChiSQUARE = chisquare(ESTFctn[9999:],DWDen[10000:])
 #%%        
 """            
 Legacy code: This old version uses a class system that isn't exactly the best - and the voxel based plotting method is slow.
