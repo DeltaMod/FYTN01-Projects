@@ -9,59 +9,64 @@ from mpl_toolkits.mplot3d import Axes3D
 from scipy import signal
 from scipy.stats import norm
 import tqdm
+
 plt.rcParams['figure.dpi']   = 150
 
-#Good parameters
-#NWALK = 500   #Number of Walkers
-#DIMX  = 100; DIMY = 100; DIMZ = 100#Dimension of Area Considered 
-#NSTEPS     = 3000
+#Parameters used for the stable population
+#NWALK = 100   #Number of Walkers
+#DIMX  = 23; DIMY = 23; DIMZ = 23#Dimension of Area Considered 
+#NSTEPS     = 10000
 #PGDIM      = [DIMX,DIMY,DIMZ] #Plagground Dimensions [x,y,z]
 #WalkerType = 'Aggro' #Aggro|Exploding
-#BIRTHS     = 'True'  #Births or no Births
-#AGGRNG     = 6       #Aggro Gen RNG - 1:AGGRNG+1 chance to make hunter 
-#HR         = 100     #Hunting Radius
-#PR         = 50      #Passive Radius
-#BR         = 200     #Passive Birth Rate (equiv to 1:BR)
-#ABR        = 10      #Aggro Birth chance (equiv to 1:ABR) - This can only happen within 2 days of eating
-#ASTRV      = 50      #Rate of aggressive starvation - If aggro does not eat in  ASTRV days, it dies
-#PSTRV      = BR*1.5  #Rate of passive "starvation" - On average, each passive cell should reproduce twice in its lifetime
-#ANIMATE    = False   #Animates results - set to false to simply get the population plot
+#BIRTHS     = True  #Births or no Births
+#AGGRNG     = 4       #Aggro Gen RNG - 1:AGGRNG+1 chance to make hunter 
+#HR         = 9       #Hunting Radius
+#PR         = 2       #Passive Radius
+#BR         = 20      #Passive Birth Rate (equiv to 1:BR)
+#ABR        = 60     #Aggro Birth chance (equiv to 1:ABR) - This can only happen within 2 days of eating
+#ASTRV      = 16      #Rate of aggressive starvation - If aggro does not eat in  ASTRV days, it dies
+#PSTRV      = BR*3  #Rate of passive "starvation" - On average, each passive cell should reproduce twice in its lifetime
+#ANIMATE    = False    #Animates results - set to false to simply get the population plot
 #AXLIM      = True    #If true - sets axis constraints for entire lattice, if false - sets constraints only to the action
 #MAXPAS     = NWALK*5 #Maximum sustainiable population - This is just to make sure the simulation does not get out of hand
+#DIMPLOT    = False  #Plots only distribution
 
 
-NWALK = 20   #Number of Walkers
-DIMX  = 250; DIMY = 250; DIMZ = 250#Dimension of Area Considered 
-NSTEPS     = 500
+NWALK = 600   #Number of Walkers
+DIMX  = 50; DIMY = 50; DIMZ = 50#Dimension of Area Considered 
+NSTEPS     = 5000
 PGDIM      = [DIMX,DIMY,DIMZ] #Plagground Dimensions [x,y,z]
 WalkerType = 'Exploding' #Aggro|Exploding
 BIRTHS     = False  #Births or no Births
-AGGRNG     = 99999999       #Aggro Gen RNG - 1:AGGRNG+1 chance to make hunter 
-HR         = 5       #Hunting Radius
+AGGRNG     = 4       #Aggro Gen RNG - 1:AGGRNG+1 chance to make hunter 
+HR         = 9       #Hunting Radius
 PR         = 2       #Passive Radius
-BR         = 50      #Passive Birth Rate (equiv to 1:BR)
-ABR        = 50     #Aggro Birth chance (equiv to 1:ABR) - This can only happen within 2 days of eating
+BR         = 20      #Passive Birth Rate (equiv to 1:BR)
+ABR        = 60     #Aggro Birth chance (equiv to 1:ABR) - This can only happen within 2 days of eating
 ASTRV      = 16      #Rate of aggressive starvation - If aggro does not eat in  ASTRV days, it dies
 PSTRV      = BR*3  #Rate of passive "starvation" - On average, each passive cell should reproduce twice in its lifetime
 ANIMATE    = False    #Animates results - set to false to simply get the population plot
 AXLIM      = True    #If true - sets axis constraints for entire lattice, if false - sets constraints only to the action
 MAXPAS     = NWALK*5 #Maximum sustainiable population - This is just to make sure the simulation does not get out of hand
-DIMPLOT    = True  #Plots only distribution
+DIMPLOT    = False  #Plots only distribution
 #%% Testing out using lists of lists instead for this, such that W[n,0]
 
 def walkergen(N,DIM,TYPE,HRNG):
     WGen = [None]*N
-    LBM = 4/10; UBM = 6/10; 
+    LBM = 0/10; UBM = 10/10; 
     LBX = int(LBM*DIM[0]);LBY = int(LBM*DIM[1]);LBZ = int(LBM*DIM[2])
     UBX = int(UBM*DIM[0]);UBY = int(UBM*DIM[1]);UBZ = int(UBM*DIM[2])
+    LBMh = 2/10; UBMh = 8/10; 
+    LBXh = int(LBMh*DIM[0]);LBYh = int(LBMh*DIM[1]);LBZh = int(LBMh*DIM[2])
+    UBXh = int(UBMh*DIM[0]);UBYh = int(UBMh*DIM[1]);UBZh = int(UBMh*DIM[2])
     for m in range(N):
         HNTR = bool(randint(0,HRNG))
         if TYPE=='Exploding':
             HNTR = True
         if HNTR ==False:
-            X    = randint(1,DIM[0]-1) 
-            Y    = randint(1,DIM[1]-1) 
-            Z    = randint(1,DIM[2]-1)
+            X    = randint(LBXh,UBXh) 
+            Y    = randint(LBYh,UBYh) 
+            Z    = randint(LBZh,UBZh)
             WTYPE = 'aggro'
         else:
             X    = randint(LBX,UBX) 
@@ -312,17 +317,13 @@ with tqdm.tqdm(total=int(pbstep)) as pbar:
                 passivestarve(W,PasIND,PSTRV,MAXPAS)
         elif WalkerType == 'Exploding':
             walkermove(W)
-            #walkersplode(W,AlvLoc,AlvIND)
+            walkersplode(W,AlvLoc,AlvIND)
         if m%int(NSTEPS/pbstep)==0:
             pbar.update(1)
             pbar.set_description('Hunters: '+str(len(AggIND[-1]))+', Runners: '+str(len(PasIND[-1])))
         
 pbar.close()
-#%% Colourfader code
-def colorFader(c1,c2,mix=0): #fade (linear interpolate) from color c1 (at mix=0) to c2 (mix=1)
-    c1=np.array(mpl.colors.to_rgb(c1))
-    c2=np.array(mpl.colors.to_rgb(c2))
-    return mpl.colors.to_hex((1-mix)*c1 + mix*c2)
+
 #%%
 DW  =  [NWALK-(NWALK-len(AlvLoc[n])) for n in range(len(AlvLoc))]
 DAgg = [len(AggIND[n]) for n in range(len(AggIND))]
@@ -331,7 +332,8 @@ DIST3= []
 for n in range(3):
     DIST = []
     for m in range(NSTEPS):
-        DIST.append([(AlvLoc[m][:,n] ==i).sum() for i in range(PGDIM[n])])
+        if len(AlvLoc[m]) !=0:
+            DIST.append([(AlvLoc[m][:,n] ==i).sum() for i in range(PGDIM[n])])
     DIST3.append(DIST)
 if ANIMATE == True:
     fig = plt.figure(1)
@@ -340,18 +342,22 @@ if ANIMATE == True:
         fig.clf()
         fig.suptitle('Evolution of random walkers')
         if DIMPLOT == True:
+            cmrun = plt.get_cmap("winter")
+            cmhun = plt.get_cmap("autumn")
+            cmded = plt.get_cmap("Greys")
             ax = fig.add_subplot(1,2,1,projection='3d')
             ax = fig.gca(projection='3d')
             if AXLIM == True:
                 ax.set_xlim3d(0, PGDIM[0])
                 ax.set_ylim3d(0,PGDIM[1])
                 ax.set_zlim3d(0,PGDIM[2])
-            if len(PasLoc[n])!=0:
-                ax.scatter3D(PasLoc[n][:,0],PasLoc[n][:,1],PasLoc[n][:,2],color='b',alpha=0.8)
-            if len(AggLoc[n])!=0:
-                ax.scatter3D(AggLoc[n][:,0],AggLoc[n][:,1],AggLoc[n][:,2],color='r',alpha=0.8)
             if len(DthLoc[n])!=0:
-                 ax.scatter3D(DthLoc[n][:,0],DthLoc[n][:,1],DthLoc[n][:,2],color='k',alpha=0.2)
+                 ax.scatter3D(DthLoc[n][:,0],DthLoc[n][:,1],DthLoc[n][:,2],c=DthLoc[n][:,2],cmap=cmded,alpha=0.2)
+            if len(PasLoc[n])!=0:
+                ax.scatter3D(PasLoc[n][:,0],PasLoc[n][:,1],PasLoc[n][:,2],c=PasLoc[n][:,2],cmap=cmrun,alpha=0.8)
+            if len(AggLoc[n])!=0:
+                ax.scatter3D(AggLoc[n][:,0],AggLoc[n][:,1],AggLoc[n][:,2],c=AggLoc[n][:,2],cmap=cmhun,alpha=0.8)
+            
             if len(ATPVec) > n:
                 if len(ATPVec[n])!=0:
                     
@@ -379,6 +385,7 @@ if ANIMATE == True:
         ax.set_xlabel('Number of iterations')
         plt.pause(0.01)
 else:
+#%%
     fig = plt.figure(1)
     plt.ion()
     fig.clf()
@@ -386,16 +393,19 @@ else:
     if DIMPLOT == True:
         ax = fig.add_subplot(1,2,1,projection='3d')
         ax = fig.gca(projection='3d')
+        cmrun = plt.get_cmap("winter")
+        cmhun = plt.get_cmap("autumn")
+        cmded = plt.get_cmap("Greys")
         if AXLIM == True:
             ax.set_xlim3d(0, PGDIM[0])
             ax.set_ylim3d(0,PGDIM[1])
             ax.set_zlim3d(0,PGDIM[2])
-        if len(PasLoc[-1])!=0:
-            ax.scatter3D(PasLoc[-1][:,0],PasLoc[-1][:,1],PasLoc[-1][:,2],color='b',alpha=0.8)
-        if len(AggLoc[-1])!=0:
-            ax.scatter3D(AggLoc[-1][:,0],AggLoc[-1][:,1],AggLoc[-1][:,2],color='r',alpha=0.8)
         if len(DthLoc[-1])!=0:
-             ax.scatter3D(DthLoc[-1][:,0],DthLoc[-1][:,1],DthLoc[-1][:,2],color='k',alpha=0.2)
+             ax.scatter3D(DthLoc[-1][:,0],DthLoc[-1][:,1],DthLoc[-1][:,2],c=DthLoc[-1][:,2],cmap=cmded,alpha=0.01)
+        if len(PasLoc[-1])!=0:
+            ax.scatter3D(PasLoc[-1][:,0],PasLoc[-1][:,1],PasLoc[-1][:,2],c=PasLoc[-1][:,2],cmap=cmrun,alpha=0.8)
+        if len(AggLoc[-1])!=0:
+            ax.scatter3D(AggLoc[-1][:,0],AggLoc[-1][:,1],AggLoc[-1][:,2],c=AggLoc[-1][:,2],cmap=cmhun,alpha=0.8)
         if len(ATPVec) > n:
             if len(ATPVec[-1])!=0:
                 
@@ -423,60 +433,109 @@ else:
     ax.set_ylabel('Number of walkers')
     ax.set_xlabel('Number of iterations')
     plt.pause(0.01)
-    ax.legend()
+    ax.legend(loc='upper right')
     ax.grid()
 #%% 
-fig = plt.figure(2)
-for m in range(NSTEPS):
-    if m%(NSTEPS-1)==0:
-        
-        RDATA = [DIST3[0][m][n]+DIST3[1][m][n]+DIST3[2][m][n] for n in range(len(DIST3[2][m]))]
-        SmoD = signal.savgol_filter(RDATA,PGDIM[0]-99,4)
-        plt.ion()    
-        plt.clf()
-        plt.grid()
-        plt.plot(RDATA) 
-        plt.plot(SmoD)    
-        plt.pause(0.01)
-
-
-#%%
-ONLYRUNIFBEEFCOMPUTER = False
-PWA = []
-for m in range(NWALK):
-    PWO =[np.array([W[n][m][1][0],W[n][m][1][1],W[n][m][1][2]]) for n in range(NSTEPS)]
-    PWA.append(np.stack(PWO))
-    fig = plt.figure(3)
-    if ONLYRUNIFBEEFCOMPUTER == True:
-        for n in range(NSTEPS):
+EXTRAFIG = True
+if EXTRAFIG == True:
+    fig = plt.figure(2)
+    for m in range(NSTEPS):
+        if m%(NSTEPS)==0:
+            m = 1000
+            #RDATA = [DIST3[0][m][n]+DIST3[1][m][n]+DIST3[2][m][n] for n in range(len(DIST3[2][m]))]
+            bindim     = np.linspace(1,max(PGDIM),int(max(PGDIM))) 
+            histx,BINx = np.histogram(AlvLoc[m][:,0],bins = bindim)
+            histy,BINy = np.histogram(AlvLoc[m][:,1],bins = bindim)
+            histz,BINz = np.histogram(AlvLoc[m][:,2],bins = bindim)
+            hist = histx+histy+histz
+            if len(hist)>20:
+                SmoD = signal.savgol_filter(hist,round(len(hist)/2)*2-3,5)
+            plt.ion()    
             plt.clf()
-            for m in range(NWALK):
-                ax = fig.gca(projection='3d')
-                plt.ion()
-                ax.plot3D(PWA[m][0:n,0],PWA[m][0:n,1],PWA[m][0:n,2],linewidth=1)
-        
+            plt.grid()
+            bins  = np.linspace(1,max(PGDIM),len(BINx))
+            plt.bar(bins[:-1],hist,width = bins[1]-bins[0],edgecolor='orangered',facecolor='coral') 
+            if len(hist)>20:
+                plt.plot(bins[:-1],SmoD)    
             plt.pause(0.01)
-ax = fig.gca(projection='3d')
-plt.ion()
-for m in range(NWALK):
-    ax.plot3D(PWA[m][:,0],PWA[m][:,1],PWA[m][:,2],linewidth=1)
+            plt.xlabel('Distance from Origo')
+            plt.ylabel('Number of Walkers')
+    
+    #%% For the love of god, don't try to run the animation - it used 10 GB of my ram at 20000 iterations
+    ONLYRUNIFBEEFCOMPUTER = False
+    PWA = []
+    if ONLYRUNIFBEEFCOMPUTER == True:
+        for m in range(NWALK):
+            PWO =[np.array([W[n][m][1][0],W[n][m][1][1],W[n][m][1][2]]) for n in range(NSTEPS)]
+            PWA.append(np.stack(PWO))
+            fig = plt.figure(3)
+            
+#                for n in range(NSTEPS):
+#                    plt.clf()
+#                    for m in range(NWALK):
+#                        ax = fig.gca(projection='3d')
+#                        plt.ion()
+#                        ax.plot3D(PWA[m][0:n,0],PWA[m][0:n,1],PWA[m][0:n,2],linewidth=1)
+#                
+#                    plt.pause(0.01)
+        ax = fig.gca(projection='3d')
+        plt.ion()
+        for m in range(NWALK):
+            ax.plot3D(PWA[m][:,0],PWA[m][:,1],PWA[m][:,2],linewidth=1)
+            ax.set_xlabel('X')
+            ax.set_ylabel('Y')
+            ax.set_zlabel('Z')
+        ax.set_xlim3d(0, PGDIM[0])
+        ax.set_ylim3d(0,PGDIM[1])
+        ax.set_zlim3d(0,PGDIM[2])
+    #%%
+        
+    #Extra Plots
+       
+    fig = plt.figure(4)
+    ax = fig.gca(projection='3d')
+    m = NSTEPS-1
+    cmpas = plt.get_cmap("winter")
+    cmhun = plt.get_cmap("autumn")
+    ax.scatter3D(PasLoc[m][:,0],PasLoc[m][:,1],PasLoc[m][:,2],alpha=0.8,c=PasLoc[m][:,2],cmap=cmpas)   
+    if WalkerType=='Aggro':    
+        ax.scatter3D(AggLoc[m][:,0],AggLoc[m][:,1],AggLoc[m][:,2],alpha=0.8,c=AggLoc[m][:,2],cmap=cmhun)   
+    ax.set_xlim3d(0, PGDIM[0])            
+    ax.set_ylim3d(0,PGDIM[1])
+    ax.set_zlim3d(0,PGDIM[2]) 
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
-ax.set_xlim3d(0, PGDIM[0])
-ax.set_ylim3d(0,PGDIM[1])
-ax.set_zlim3d(0,PGDIM[2])
+#%%    
+
+fig = plt.figure(5)
+DWDen  =  [(NWALK-(NWALK-len(AlvLoc[n])))/(PGDIM[0]*PGDIM[1]*PGDIM[2]) for n in range(len(AlvLoc))]
+ax = fig.gca()
+
+if AXLIM == True:
+    ax.axis((0,NSTEPS,0,max(DWDen)))
+ax.plot(DWDen,label='N = '+str(NWALK))
+ax.set_ylabel('Density of walkers [walkers/units^3]')
+ax.set_xlabel('Number of iterations')
+ax.grid()
+ax.legend(loc='upper right')
+
+
+
 #%%
-"""     
-Extra Plots
-   
-fig = plt.figure(4)
-ax = fig.gca(projection='3d')
-ax.scatter3D(PasLoc[-1][:,0],PasLoc[-1][:,1],PasLoc[-1][:,2],color='b',alpha=0.8)     
-ax.set_xlim3d(0, PGDIM[0])            
-ax.set_ylim3d(0,PGDIM[1])
-ax.set_zlim3d(0,PGDIM[2]) 
-"""
+
+fig = plt.figure(6)
+plt.clf()
+for NSIZE in [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]:
+    ESTFctn = np.array([NSIZE*(t+1)**-1/(PGDIM[0]*PGDIM[1]*PGDIM[2]) for t in range(NSTEPS)])
+    ax = fig.gca()
+    ax.axis((0,100,0,max(ESTFctn)))
+    ax.plot(ESTFctn,label='N = '+str(NSIZE))  
+ax.set_ylabel('Density of walkers [walkers/units^3]')
+ax.set_xlabel('Number of iterations')
+ax.legend()    
+ax.grid()
+
 #%%        
 """            
 Legacy code: This old version uses a class system that isn't exactly the best - and the voxel based plotting method is slow.
