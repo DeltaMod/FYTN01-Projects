@@ -4,10 +4,10 @@ Project 3
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-import cv2 #run pip install opencv-python
-import time 
 from random import randint
 from mpl_toolkits.mplot3d import Axes3D
+from scipy import signal
+from scipy.stats import norm
 import tqdm
 plt.rcParams['figure.dpi']   = 150
 
@@ -30,9 +30,9 @@ plt.rcParams['figure.dpi']   = 150
 #MAXPAS     = NWALK*5 #Maximum sustainiable population - This is just to make sure the simulation does not get out of hand
 
 
-NWALK = 500   #Number of Walkers
-DIMX  = 50; DIMY = 50; DIMZ = 50#Dimension of Area Considered 
-NSTEPS     = 5000
+NWALK = 20   #Number of Walkers
+DIMX  = 250; DIMY = 250; DIMZ = 250#Dimension of Area Considered 
+NSTEPS     = 500
 PGDIM      = [DIMX,DIMY,DIMZ] #Plagground Dimensions [x,y,z]
 WalkerType = 'Exploding' #Aggro|Exploding
 BIRTHS     = False  #Births or no Births
@@ -46,12 +46,12 @@ PSTRV      = BR*3  #Rate of passive "starvation" - On average, each passive cell
 ANIMATE    = False    #Animates results - set to false to simply get the population plot
 AXLIM      = True    #If true - sets axis constraints for entire lattice, if false - sets constraints only to the action
 MAXPAS     = NWALK*5 #Maximum sustainiable population - This is just to make sure the simulation does not get out of hand
-DIMPLOT    = False #Plots only distribution
+DIMPLOT    = True  #Plots only distribution
 #%% Testing out using lists of lists instead for this, such that W[n,0]
 
 def walkergen(N,DIM,TYPE,HRNG):
     WGen = [None]*N
-    LBM = 0/10; UBM = 10/10; 
+    LBM = 4/10; UBM = 6/10; 
     LBX = int(LBM*DIM[0]);LBY = int(LBM*DIM[1]);LBZ = int(LBM*DIM[2])
     UBX = int(UBM*DIM[0]);UBY = int(UBM*DIM[1]);UBZ = int(UBM*DIM[2])
     for m in range(N):
@@ -171,6 +171,7 @@ def walkerhunt(self,HR,PR):
                 
         else:
             WMov.append(self[-1][m])
+            
     self.append([WMov[n] for n in range(len(WMov))])       
     
 def walkersplode(self,LCTN,LID):
@@ -311,7 +312,7 @@ with tqdm.tqdm(total=int(pbstep)) as pbar:
                 passivestarve(W,PasIND,PSTRV,MAXPAS)
         elif WalkerType == 'Exploding':
             walkermove(W)
-            walkersplode(W,AlvLoc,AlvIND)
+            #walkersplode(W,AlvLoc,AlvIND)
         if m%int(NSTEPS/pbstep)==0:
             pbar.update(1)
             pbar.set_description('Hunters: '+str(len(AggIND[-1]))+', Runners: '+str(len(PasIND[-1])))
@@ -326,7 +327,12 @@ def colorFader(c1,c2,mix=0): #fade (linear interpolate) from color c1 (at mix=0)
 DW  =  [NWALK-(NWALK-len(AlvLoc[n])) for n in range(len(AlvLoc))]
 DAgg = [len(AggIND[n]) for n in range(len(AggIND))]
 DPas = [len(PasIND[n]) for n in range(len(PasIND))]
-   
+DIST3= []
+for n in range(3):
+    DIST = []
+    for m in range(NSTEPS):
+        DIST.append([(AlvLoc[m][:,n] ==i).sum() for i in range(PGDIM[n])])
+    DIST3.append(DIST)
 if ANIMATE == True:
     fig = plt.figure(1)
     plt.ion()
@@ -409,8 +415,9 @@ else:
     if AXLIM == True:
         ax.axis((0,NSTEPS,0,max(DW)))
     ax.plot(DW,color='green',label='Total')
-    ax.plot(DAgg,color='red',label='Hunters')
-    ax.plot(DPas,color='blue',label='Runners')
+    if WalkerType == 'Aggro':
+        ax.plot(DAgg,color='red',label='Hunters')
+        ax.plot(DPas,color='blue',label='Runners')
     ax.yaxis.tick_right()
     ax.yaxis.set_label_position("right")
     ax.set_ylabel('Number of walkers')
@@ -419,9 +426,58 @@ else:
     ax.legend()
     ax.grid()
 #%% 
+fig = plt.figure(2)
+for m in range(NSTEPS):
+    if m%(NSTEPS-1)==0:
+        
+        RDATA = [DIST3[0][m][n]+DIST3[1][m][n]+DIST3[2][m][n] for n in range(len(DIST3[2][m]))]
+        SmoD = signal.savgol_filter(RDATA,PGDIM[0]-99,4)
+        plt.ion()    
+        plt.clf()
+        plt.grid()
+        plt.plot(RDATA) 
+        plt.plot(SmoD)    
+        plt.pause(0.01)
 
+
+#%%
+ONLYRUNIFBEEFCOMPUTER = False
+PWA = []
+for m in range(NWALK):
+    PWO =[np.array([W[n][m][1][0],W[n][m][1][1],W[n][m][1][2]]) for n in range(NSTEPS)]
+    PWA.append(np.stack(PWO))
+    fig = plt.figure(3)
+    if ONLYRUNIFBEEFCOMPUTER == True:
+        for n in range(NSTEPS):
+            plt.clf()
+            for m in range(NWALK):
+                ax = fig.gca(projection='3d')
+                plt.ion()
+                ax.plot3D(PWA[m][0:n,0],PWA[m][0:n,1],PWA[m][0:n,2],linewidth=1)
+        
+            plt.pause(0.01)
+ax = fig.gca(projection='3d')
+plt.ion()
+for m in range(NWALK):
+    ax.plot3D(PWA[m][:,0],PWA[m][:,1],PWA[m][:,2],linewidth=1)
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+ax.set_xlim3d(0, PGDIM[0])
+ax.set_ylim3d(0,PGDIM[1])
+ax.set_zlim3d(0,PGDIM[2])
+#%%
+"""     
+Extra Plots
    
-          
+fig = plt.figure(4)
+ax = fig.gca(projection='3d')
+ax.scatter3D(PasLoc[-1][:,0],PasLoc[-1][:,1],PasLoc[-1][:,2],color='b',alpha=0.8)     
+ax.set_xlim3d(0, PGDIM[0])            
+ax.set_ylim3d(0,PGDIM[1])
+ax.set_zlim3d(0,PGDIM[2]) 
+"""
+#%%        
 """            
 Legacy code: This old version uses a class system that isn't exactly the best - and the voxel based plotting method is slow.
 class walkergen(object):
