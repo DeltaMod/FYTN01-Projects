@@ -1,5 +1,17 @@
 """
-Project 3
+   ___             _         __    ____                                                          
+  / _ \_______    (____ ____/ /_  |_  /  ____                                                    
+ / ___/ __/ _ \  / / -_/ __/ __/ _/_ <  /___/                                                    
+/_/  /_/  \_____/ /\__/\__/\__/ /____/                                                           
+   ______    |___/ __          __  _       ___      __     __  _                                 
+  / __/ /____ ____/ / ___ ____/ /_(_____  / _ \___ / ___ _/ /_(____  ___  ___                    
+ _\ \/ __/ _ / __/ _ / _ `(_-/ __/ / __/ / , _/ -_/ / _ `/ __/ / _ \/ _ \(_-<                    
+/___/\__/\___\__/_//_\_,_/___\__/_/\__/ /_/|_|\__/_/\_,_/\__/_/\___/_//_/___/                    
+ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_)
+
+Making walkers blow up on contact, or play a "friendly game of hide and seek"
+                                                                                                 
 """
 import numpy as np
 import matplotlib.pyplot as plt
@@ -31,29 +43,42 @@ plt.rcParams['figure.dpi']   = 150
 #MAXPAS     = NWALK*5 #Maximum sustainiable population - This is just to make sure the simulation does not get out of hand
 #DIMPLOT    = False  #Plots only distribution
 
+"""
+   _____            __     __  _             ___                          __             
+  / __(_)_ _  __ __/ /__ _/ /_(_)__  ___    / _ \___ ________ ___ _  ___ / /____ _______ 
+ _\ \/ /  ' \/ // / / _ `/ __/ / _ \/ _ \  / ___/ _ `/ __/ _ `/  ' \/ -_) __/ -_) __(_-< 
+/___/_/_/_/_/\_,_/_/\_,_/\__/_/\___/_//_/ /_/   \_,_/_/  \_,_/_/_/_/\__/\__/\__/_/ /___/ 
+ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+(_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_|_)
 
-NWALK = 600   #Number of Walkers
-DIMX  = 50; DIMY = 50; DIMZ = 50#Dimension of Area Considered 
-NSTEPS     = 5000
-PGDIM      = [DIMX,DIMY,DIMZ] #Plagground Dimensions [x,y,z]
-WalkerType = 'Exploding' #Aggro|Exploding
-BIRTHS     = False  #Births or no Births
-AGGRNG     = 4       #Aggro Gen RNG - 1:AGGRNG+1 chance to make hunter 
-HR         = 9       #Hunting Radius
-PR         = 2       #Passive Radius
-BR         = 20      #Passive Birth Rate (equiv to 1:BR)
-ABR        = 60     #Aggro Birth chance (equiv to 1:ABR) - This can only happen within 2 days of eating
-ASTRV      = 16      #Rate of aggressive starvation - If aggro does not eat in  ASTRV days, it dies
-PSTRV      = BR*3  #Rate of passive "starvation" - On average, each passive cell should reproduce twice in its lifetime
-ANIMATE    = False    #Animates results - set to false to simply get the population plot
-AXLIM      = True    #If true - sets axis constraints for entire lattice, if false - sets constraints only to the action
-MAXPAS     = NWALK*5 #Maximum sustainiable population - This is just to make sure the simulation does not get out of hand
-DIMPLOT    = False  #Plots only distribution
+Modify these in any way - the code should be robust to handle most, if not all, possible combinations that aren't zero.
+                                                                                         
+"""
+NWALK      = 500              #Number of Walkers
+DIMX       = 50
+DIMY       = 50              
+DIMZ       = 50 
+PGDIM      = [DIMX,DIMY,DIMZ]  #Plagground Dimensions [x,y,z]
+NSTEPS     = 100
+WalkerType = 'Aggro'       #Aggro|Exploding
+BIRTHS     = True            #Births or no Births
+AGGRNG     = 4                 #Aggro Gen RNG - 1:AGGRNG+1 chance to make hunter 
+HR         = 9                 #Hunting Radius
+PR         = 2                 #Passive Radius
+BR         = 20                #Passive Birth Rate (equiv to 1:BR)
+ABR        = 60                #Aggro Birth chance (equiv to 1:ABR) - This can only happen within 2 days of eating
+ASTRV      = 16                #Rate of aggressive starvation - If aggro does not eat in  ASTRV days, it dies
+PSTRV      = BR*3              #Rate of passive "starvation" - On average, each passive cell should reproduce twice in its lifetime
+ANIMATE    = True             #Animates results - set to false to simply get the population plot
+AXLIM      = True              #If true - sets axis constraints for entire lattice, if false - sets constraints only to the action
+MAXPAS     = NWALK*5           #Maximum sustainiable population - This is just to make sure the simulation does not get out of hand
+DIMPLOT    = True             #Plots only distribution
+DTHPLOT    = False            #Plots locations of dead walkers - may get cluttered
 #%% Testing out using lists of lists instead for this, such that W[n,0]
 
 def walkergen(N,DIM,TYPE,HRNG):
     WGen = [None]*N
-    LBM = 0/10; UBM = 10/10; 
+    LBM = 3/10; UBM = 7/10; 
     LBX = int(LBM*DIM[0]);LBY = int(LBM*DIM[1]);LBZ = int(LBM*DIM[2])
     UBX = int(UBM*DIM[0]);UBY = int(UBM*DIM[1]);UBZ = int(UBM*DIM[2])
     LBMh = 2/10; UBMh = 8/10; 
@@ -351,8 +376,9 @@ if ANIMATE == True:
                 ax.set_xlim3d(0, PGDIM[0])
                 ax.set_ylim3d(0,PGDIM[1])
                 ax.set_zlim3d(0,PGDIM[2])
-            if len(DthLoc[n])!=0:
-                 ax.scatter3D(DthLoc[n][:,0],DthLoc[n][:,1],DthLoc[n][:,2],c=DthLoc[n][:,2],cmap=cmded,alpha=0.2)
+            if DTHPLOT == True:
+                if len(DthLoc[n])!=0:
+                    ax.scatter3D(DthLoc[n][:,0],DthLoc[n][:,1],DthLoc[n][:,2],c=DthLoc[n][:,2],cmap=cmded,alpha=0.2)
             if len(PasLoc[n])!=0:
                 ax.scatter3D(PasLoc[n][:,0],PasLoc[n][:,1],PasLoc[n][:,2],c=PasLoc[n][:,2],cmap=cmrun,alpha=0.8)
             if len(AggLoc[n])!=0:
@@ -436,12 +462,12 @@ else:
     ax.legend(loc='upper right')
     ax.grid()
 #%% 
-EXTRAFIG = True
+EXTRAFIG = False
 if EXTRAFIG == True:
     fig = plt.figure(2)
     for m in range(NSTEPS):
-        if m%(NSTEPS)==0:
-            m = 1000
+        if m%(NSTEPS-1)==0:
+            m = 200
             #RDATA = [DIST3[0][m][n]+DIST3[1][m][n]+DIST3[2][m][n] for n in range(len(DIST3[2][m]))]
             bindim     = np.linspace(1,max(PGDIM),int(max(PGDIM))) 
             histx,BINx = np.histogram(AlvLoc[m][:,0],bins = bindim)
@@ -494,7 +520,7 @@ if EXTRAFIG == True:
        
     fig = plt.figure(4)
     ax = fig.gca(projection='3d')
-    m = NSTEPS-1
+    m = 200
     cmpas = plt.get_cmap("winter")
     cmhun = plt.get_cmap("autumn")
     ax.scatter3D(PasLoc[m][:,0],PasLoc[m][:,1],PasLoc[m][:,2],alpha=0.8,c=PasLoc[m][:,2],cmap=cmpas)   
@@ -506,35 +532,37 @@ if EXTRAFIG == True:
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
-#%%    
-
-fig = plt.figure(5)
-DWDen  =  [(NWALK-(NWALK-len(AlvLoc[n])))/(PGDIM[0]*PGDIM[1]*PGDIM[2]) for n in range(len(AlvLoc))]
-ax = fig.gca()
-
-if AXLIM == True:
-    ax.axis((0,NSTEPS,0,max(DWDen)))
-ax.plot(DWDen,label='N = '+str(NWALK))
-ax.set_ylabel('Density of walkers [walkers/units^3]')
-ax.set_xlabel('Number of iterations')
-ax.grid()
-ax.legend(loc='upper right')
-
-
-
-#%%
-
-fig = plt.figure(6)
-plt.clf()
-for NSIZE in [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]:
-    ESTFctn = np.array([NSIZE*(t+1)**-1/(PGDIM[0]*PGDIM[1]*PGDIM[2]) for t in range(NSTEPS)])
+    #%%    
+    
+    fig = plt.figure(5)
+    DWDen  =  [(NWALK-(NWALK-len(AlvLoc[n])))/(PGDIM[0]*PGDIM[1]*PGDIM[2]) for n in range(len(AlvLoc))]
     ax = fig.gca()
-    ax.axis((0,100,0,max(ESTFctn)))
-    ax.plot(ESTFctn,label='N = '+str(NSIZE))  
-ax.set_ylabel('Density of walkers [walkers/units^3]')
-ax.set_xlabel('Number of iterations')
-ax.legend()    
-ax.grid()
+    
+    if AXLIM == True:
+        ax.axis((0,NSTEPS,0,max(DWDen)))
+    ax.plot(DWDen,label='N = '+str(NWALK))
+    ax.set_ylabel('Density of walkers [walkers/units^3]')
+    ax.set_xlabel('Number of iterations')
+    ax.grid()
+    ax.legend(loc='upper right')
+    
+    
+    
+    #%%
+    
+    fig = plt.figure(6)
+    plt.clf()
+    for NSIZE in [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000,5000]:
+        if NSIZE == 5000:
+            ESTFctn = np.array([NSIZE*(t*0.004)**-1/(PGDIM[0]*PGDIM[1]*PGDIM[2]) for t in range(1,NSTEPS)])
+            ax = fig.gca()
+            ax.axis((1,NSTEPS,0,max(DWDen)))
+            ax.plot(ESTFctn,label='Estimated')  
+            ax.plot(DWDen,label='Measured')
+    ax.set_ylabel('Density of walkers [walkers/units^3]')
+    ax.set_xlabel('Number of iterations')
+    ax.legend()    
+    ax.grid()
 
 #%%        
 """            
