@@ -59,7 +59,7 @@ DIMX       = 25                #Lattice x-dim
 DIMY       = 25                #Lattice y-dim             
 DIMZ       = 25                #Lattice z-dim 
 PGDIM      = [DIMX,DIMY,DIMZ]  #Plagground Dimensions [x,y,z]
-NSTEPS     = 500               #Total Number of steps taken
+NSTEPS     = 100              #Total Number of steps taken
 WalkerType = 'Aggro'           #Aggro|Exploding
 BIRTHS     = True              #Births or no Births
 AGGRNG     = 4                 #Aggro Gen RNG - 1:AGGRNG+1 chance to make hunter 
@@ -393,9 +393,11 @@ if ANIMATE == True:
                         if sum(ATPVec[n][m][1])!=-3000:
                             if sum(abs(ATPVec[n][m][1]-ATPVec[n][m][0]))<HR:
                                 linecolour = 'orange'
+                                
                             elif sum(abs(ATPVec[n][m][1]-ATPVec[n][m][0]))>HR:
                                 linecolour = 'green'
-                            ax.plot3D([ATPVec[n][m][0][0],ATPVec[n][m][1][0]],[ATPVec[n][m][0][1],ATPVec[n][m][1][1]],[ATPVec[n][m][0][2],ATPVec[n][m][1][2]],color = linecolour )
+                                
+                                ax.plot3D([ATPVec[n][m][0][0],ATPVec[n][m][1][0]],[ATPVec[n][m][0][1],ATPVec[n][m][1][1]],[ATPVec[n][m][0][2],ATPVec[n][m][1][2]],color = linecolour )
             ax.set_xlabel('X')
             ax.set_ylabel('Y')
             ax.set_zlabel('Z')
