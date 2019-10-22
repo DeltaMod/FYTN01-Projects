@@ -45,4 +45,24 @@ Features:
                         (you can run it for longer for better results)
                         The code contains a real space convolution, as well as full image convolution in frequency space,
                         AND a sectioned method that handles only the pixels surrounding the max!
-               
+              
+   ___             _         __    ____                                                          
+  / _ \_______    (____ ____/ /_  |_  /  ____                                                    
+ / ___/ __/ _ \  / / -_/ __/ __/ _/_ <  /___/                                                    
+/_/  /_/  \_____/ /\__/\__/\__/ /____/                                                           
+   ______    |___/ __          __  _       ___      __     __  _                                 
+  / __/ /____ ____/ / ___ ____/ /_(_____  / _ \___ / ___ _/ /_(____  ___  ___                    
+ _\ \/ __/ _ / __/ _ / _ `(_-/ __/ / __/ / , _/ -_/ / _ `/ __/ / _ \/ _ \(_-<                    
+/___/\__/\___\__/_//_\_,_/___\__/_/\__/ /_/|_|\__/_/\_,_/\__/_/\___/_//_/___/                    
+ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_(_)
+Located in FYTN03-Projects/Project 3 - Stochastic Process
+Two main files:
++P3-VoxelTests.py - contains an initial implementation using a vector matrix with walkers indicated by a 1 or a 0. 
+                    Features annihilation when walkers coincide with each other.
+                    
++P3-Main.py       - Contains two main modes of operation, with WalkerType="Aggro"|"Exploding"
+                    Agresive walkers in the "Aggro" mode searches for the nearest passive walker, moves towards them if within a radius
+                    Uses a two matrix finding algorithm to determine nearest neighbour, which significantly reduces computation times.
+                    Currently loaded parameters should provide a high probability of a stable predator-prey populaton cycle  
+                    The script should contain sufficient documentation to figure out the rest
